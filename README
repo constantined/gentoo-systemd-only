@@ -32,7 +32,7 @@ changes are included there.
 Instructions
 ------------
 
-0. Befor anything, BACKUP YOUR SYSTEM AND YOUR PORTAGE CONFIGURATION.
+1. Before anything, BACKUP YOUR SYSTEM AND YOUR PORTAGE CONFIGURATION.
    Make a backup of:
    
    /var/lib/portage/world
@@ -51,12 +51,12 @@ Instructions
    systemd-sysv-utils; and the removal of baselayout *should* also be
    safe, provided that you install systemd-baselayout.
 
-1. Add the directory with the onlysystemd overlay to the
+2. Add the directory with the onlysystemd overlay to the
    PORTDIR_OVERLAY variable in /etc/make.conf:
    
    PORTDIR_OVRELAY="/path/to/onlysystemd"
 
-2. Edit /etc/portage/profile/packages (create it if it doesn't exists)
+3. Edit /etc/portage/profile/packages (create it if it doesn't exists)
    and add the following lines:
    
    -*>=sys-apps/baselayout-2
@@ -65,20 +65,20 @@ Instructions
    The first one removes baselayout from the @system set, the second
    one adds systemd-baselayout to it.
 
-3. Edit /etc/portage/package.keywords and add sys-apps/sysvinit-tools,
+4. Edit /etc/portage/package.keywords and add sys-apps/sysvinit-tools,
    sys-apps/systemd-baselayout, and sys-apps/systemd-sysv-utils:
    
    =sys-apps/sysvinit-tools-2.88-r2 ~amd64
    =sys-apps/systemd-baselayout-2.0.3 ~amd64
    =sys-apps/systemd-sysv-utils-37 ~amd64
 
-4. Edit /etc/portage/package.unmask and add
+5. Edit /etc/portage/package.unmask and add
    sys-apps/systemd-sysv-utils to it:
    
    =sys-apps/kmod-5
    =sys-apps/systemd-sysv-utils-37
 
-5. If necessary, add sys-apps/kmod and sys-apps/rescan-scsi-bus to
+6. If necessary, add sys-apps/kmod and sys-apps/rescan-scsi-bus to
    /etc/portage/package.keywords, and unmask sys-apps/kmod:
 
    /etc/portage/package.keywords:
@@ -88,12 +88,12 @@ Instructions
    /etc/portage/package.unmask:
    =sys-apps/kmod-5
 
-6. Uninstall openrc, baselayout and sysvinit:
+7. Uninstall openrc, baselayout and sysvinit:
 
    emerge --unmerge --verbose sys-apps/openrc sys-apps/baselayout \
    sys-apps/sysvinit
 
-7. See if you can upgrade the world:
+8. See if you can upgrade the world:
 
    emerge --newuse --deep --update --verbose --pretend world
    
@@ -125,7 +125,7 @@ install init scripts on /etc/init.d. If you want to avoid the
 installation of init scripts on /etc/init.d, please edit
 /etc/make.conf with an appropriate INSTALL_MASK variable.
 
-8. (Optional) Add the following directories to INSTALL_MASK in
+9. (Optional) Add the following directories to INSTALL_MASK in
    /etc/make.conf:
    
    /etc/init.d
