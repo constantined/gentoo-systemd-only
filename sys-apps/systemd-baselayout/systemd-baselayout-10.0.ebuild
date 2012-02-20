@@ -5,9 +5,9 @@
 inherit eutils multilib
 
 DESCRIPTION="Filesystem baselayout for systemd"
-HOMEPAGE="http://xochitl.matem.unam.mx/~canek/gentoo-only-systemd/index.html"
+HOMEPAGE="http://xochitl.matem.unam.mx/~canek/gentoo-systemd-only/index.html"
 SRC_URI="mirror://gentoo/${P}.tar.bz2
-         http://xochitl.matem.unam.mx/~canek/gentoo-only-systemd/dist/${P}.tar.bz2"
+         http://xochitl.matem.unam.mx/~canek/gentoo-systemd-only/dist/${P}.tar.bz2"
 
 LICENSE="GPL-2"
 SLOT="0"
