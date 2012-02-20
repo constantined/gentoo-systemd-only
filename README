@@ -1,6 +1,17 @@
 A systemd-only Gentoo system
 ============================
 
+Homepage:
+
+    http://xochitl.matem.unam.mx/~canek/gentoo-systemd-only/index.html
+
+Git repository:
+
+    git clone git://github.com/canek-pelaez/gentoo-systemd-only.git
+
+Introduction
+------------
+
 The package sys-apps/systemd was added to the portage tree in June of
 2011, and since then support for it has only been growing. As of now
 (February, 2012), almost any hardware configuration it's able to run
@@ -54,7 +65,7 @@ Instructions
 2. Add the directory with the onlysystemd overlay to the
    PORTDIR_OVERLAY variable in /etc/make.conf:
    
-   PORTDIR_OVRELAY="/path/to/onlysystemd"
+   PORTDIR_OVERLAY="/path/to/gentoo-systemd-only"
 
 3. Edit /etc/portage/profile/packages (create it if it doesn't exists)
    and add the following lines:
@@ -63,7 +74,7 @@ Instructions
    *>=sys-apps/systemd-baselayout-2
    
    The first one removes baselayout from the @system set, the second
-   one adds systemd-baselayout to it.
+   one adds sys-apps/systemd-baselayout to it.
 
 4. Edit /etc/portage/package.keywords and add sys-apps/sysvinit-tools,
    sys-apps/systemd-baselayout, and sys-apps/systemd-sysv-utils:
@@ -88,7 +99,8 @@ Instructions
    /etc/portage/package.unmask:
    =sys-apps/kmod-5
 
-7. Uninstall openrc, baselayout and sysvinit:
+7. Uninstall sys-apps/openrc, sys-apps/baselayout and
+   sys-apps/sysvinit:
 
    emerge --unmerge --verbose sys-apps/openrc sys-apps/baselayout \
    sys-apps/sysvinit
@@ -103,23 +115,24 @@ Instructions
    
    If you have to keyword and unmask packages, do it and try again.
    
-   If in the pretended emerge, openrc, baselayout or sysvinit try to
-   get installed again, it means that you have a package installed
-   that need them, and for which there is no alternative in this
-   overlay. You can get back to the backup you did in step 0 (you did
-   it, right?), and simply install again openrc, baselayout and
-   sysvinit, or you can track the offending package and create an
-   alternative ebuild that uses the replacements in this overlay
-   (please send it to me if you do). If you don't know how to do it,
-   you can send me the output of the pretendend emerge so I can create
-   the alternative ebuild, integrate it in the overlay, and then you
-   will be able to do it.
+   If in the pretended emerge, sys-apps/openrc, sys-apps/baselayout
+   or sys-apps/sysvinit try to get installed again, it means that
+   you have a package installed that need them, and for which there
+   is no alternative in this overlay. You can get back to the backup
+   you did in step 0 (you did it, right?), and simply install again
+   sys-apps/openrc, sys-apps/baselayout and sys-apps/sysvinit, or
+   you can track the offending package and create an alternative
+   ebuild that uses the replacements in this overlay (please send it
+   to me if you do). If you don't know how to do it, you can send me
+   the output of the pretendend emerge so I can create the
+   alternative ebuild, integrate it in the overlay, and then you
+   will be able to do the emerge.
 
 
 OpenRC init scripts
 -------------------
 
-Please note that the following instructions only remove the package
+Please note that the instructions from above only remove the package
 sys-apps/openrc: they do nothing to prevent arbitrary packages to
 install init scripts on /etc/init.d. If you want to avoid the
 installation of init scripts on /etc/init.d, please edit
@@ -163,7 +176,7 @@ Changes from the official portage tree:
 
 * net-dns/avahi:
 
-  - Use systemd eclass:
+  - Use the systemd eclass:
   
     https://bugs.gentoo.org/show_bug.cgi?id=366173
 
@@ -206,10 +219,10 @@ Changes from the official portage tree:
     
   - Do not depend on sys-fs/udev-init-scripts:
     
-    The package sys-fs/udev-init-scripts contains OpenRC init scripts,
-    a udev script to call the OpenRC init scripts, and a rule file to
-    run the udev script that calls the OpenRC init scripts. All of this 
-    is redundant with systemd. There is also a simple 40-gentoo.rules
+    The package sys-fs/udev-init-scripts contains init scripts, a
+    udev script to call the init scripts, and a rule file to run the
+    udev script that calls the init scripts. All of this is
+    redundant with systemd. There is also a simple 40-gentoo.rules
     rule file: This file belongs in the udev package.
 
     Bug to be filled.
@@ -222,8 +235,8 @@ Changes from the official portage tree:
 New packages:
 -------------
 
-* sys-apps/sysvinit-tools: Split some utilities from sysvinit, in
-  response to bug 399615:
+* sys-apps/sysvinit-tools: Split some utilities from
+  sys-apps/sysvinit, in response to bug 399615:
 
   https://bugs.gentoo.org/show_bug.cgi?id=399615
   
