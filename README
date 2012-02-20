@@ -23,15 +23,23 @@ set, and baselayout depends on openrc, so every single Gentoo
 installation includes both packages, unless the user explicitly
 configures her system to avoid the installation of said packages.
 
-This overlay is an experiment to see how difficult is to remove openrc
-from a Gentoo system, so it runs only with systemd. As it turns out,
-the necessary changes are not that many.
+This overlay is an experiment to see how difficult it is to remove
+openrc from a Gentoo system, so it runs only with systemd. I will try
+to keep the overlay in sync with the portage tree until the proposed
+changes are included there.
 
 
 Instructions
 ------------
 
-0. WARNING: IF YOU FAIL TO FOLLOW THESE STEPS PROPERLY, YOU MAY RENDER
+0. Befor anything, BACKUP YOUR SYSTEM AND YOUR PORTAGE CONFIGURATION.
+   Make a backup of:
+   
+   /var/lib/portage/world
+   /etc/portage
+   /etc/make.conf
+
+   WARNING: IF YOU FAIL TO FOLLOW THESE STEPS PROPERLY, YOU MAY RENDER
    YOUR SYSTEM UNUSABLE. EVEN IF YOU FOLLOW THESE STEPS PROPERLY, YOU
    MAY RENDER YOUR SYSTEM UNUSABLE. MAKE SURE YOU KNOW WHAT YOU ARE
    DOING. I TAKE NO RESPONSABILITY IF THIS OVERLAY EATS YOUR SYSTEM
@@ -85,9 +93,28 @@ Instructions
    emerge --unmerge --verbose sys-apps/openrc sys-apps/baselayout \
    sys-apps/sysvinit
 
-7. Upgrade the world:
+7. See if you can upgrade the world:
 
+   emerge --newuse --deep --update --verbose --pretend world
+   
+   If the emerge is feasible, go for it:
+   
    emerge --newuse --deep --update --verbose world
+   
+   If you have to keyword and unmask packages, do it and try again.
+   
+   If in the pretended emerge, openrc, baselayout or sysvinit try to
+   get installed again, it means that you have a package installed
+   that need them, and for which there is no alternative in this
+   overlay. You can get back to the backup you did in step 0 (you did
+   it, right?), and simply install again openrc, baselayout and
+   sysvinit, or you can track the offending package and create an
+   alternative ebuild that uses the replacements in this overlay
+   (please send it to me if you do). If you don't know how to do it,
+   you can send me the output of the pretendend emerge so I can create
+   the alternative ebuild, integrate it in the overlay, and then you
+   will be able to do it.
+
 
 OpenRC init scripts
 -------------------
@@ -111,6 +138,18 @@ installation of init scripts on /etc/init.d, please edit
 This is the same for users of OpenRC who don't want to have installed
 systemd service files on /usr/lib/systemd: they need to set up an
 appropriate INSTALL_MASK variable in /etc/make.conf.
+
+
+Getting cold feet
+-----------------
+
+If you want to get back to the normal portage configuration, just
+uninstall every package from the overlay, delete it and restore your
+backup from step 0 (you did a backup, right?). You then do
+
+emerge --newuse --deep --update --verbose world
+
+and, *in theory*, everything should get back to normal.
 
 
 Changes from the official portage tree:
