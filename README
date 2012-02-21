@@ -57,12 +57,13 @@ Instructions
    AND THEN RUNS AWAY WITH ALL YOUR VALUABLES.
    
    That being said: If you are already using systemd, the removal of
-   openrc *should* not affect your system; the removal of sysvinit
-   *should* also be safe, provided that you install sysvinit-tools and
-   systemd-sysv-utils; and the removal of baselayout *should* also be
-   safe, provided that you install systemd-baselayout.
+   sys-apps/openrc *should* not affect your system; the removal of
+   sys-apps/sysvinit *should* also be safe, provided that you install
+   sys-apps/sysvinit-tools and sys-apps/systemd-sysv-utils; and the
+   removal of sys-apps/baselayout *should* also be safe, provided that
+   you install sys-apps/systemd-baselayout.
 
-2. Add the directory with the onlysystemd overlay to the
+2. Add the directory with the gentoo-systemd-only overlay to the
    PORTDIR_OVERLAY variable in /etc/make.conf:
    
    PORTDIR_OVERLAY="/path/to/gentoo-systemd-only"
