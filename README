@@ -185,7 +185,7 @@ Changes from the official portage tree:
   
   - Don't use /etc/init.d/functions.sh:
   
-    https://bugs.gentoo.org/show_bug.cgi?id=352075
+    https://bugs.gentoo.org/show_bug.cgi?id=373219
 
 * sys-kernel/dracut:
 
