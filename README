@@ -181,6 +181,12 @@ Changes from the official portage tree:
   
     https://bugs.gentoo.org/show_bug.cgi?id=366173
 
+* sys-devel/gcc-config:
+  
+  - Don't use /etc/init.d/functions.sh:
+  
+    https://bugs.gentoo.org/show_bug.cgi?id=352075
+
 * sys-kernel/dracut:
 
   - Depend on new package sys-apps/systemd-baselayout instead of
