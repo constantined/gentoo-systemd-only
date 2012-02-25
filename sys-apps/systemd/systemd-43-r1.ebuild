@@ -13,7 +13,7 @@ SRC_URI="http://www.freedesktop.org/software/systemd/${P}.tar.xz"
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="acl audit cryptsetup lzma pam plymouth selinux tcpd"
+IUSE="acl audit cryptsetup doc lzma pam plymouth selinux tcpd"
 
 # A little higher than upstream requires
 # but I had real trouble with 2.6.37 and systemd.
@@ -28,6 +28,7 @@ RDEPEND=">=sys-apps/dbus-1.4.10
 	>=sys-apps/util-linux-2.19
 	>=sys-fs/udev-172
 	sys-libs/libcap
+	doc? ( dev-libs/libxslt )
 	acl? ( sys-apps/acl )
 	audit? ( >=sys-process/audit-2 )
 	cryptsetup? ( sys-fs/cryptsetup )
@@ -62,6 +63,7 @@ src_configure() {
 		$(use_enable acl)
 		$(use_enable audit)
 		$(use_enable cryptsetup libcryptsetup)
+		$(use_enable doc manpages)
 		$(use_enable lzma xz)
 		$(use_enable pam)
 		$(use_enable plymouth)
@@ -89,9 +91,11 @@ src_install() {
 	rm -r "${D}"/tmp || die
 
 	# we just keep sysvinit tools, so no need for the mans
-	rm "${D}"/usr/share/man/man8/{halt,poweroff,reboot,runlevel,shutdown,telinit}.8 \
-		|| die
-	rm "${D}"/usr/share/man/man1/init.1 || die
+	if use doc; then
+		rm "${D}"/usr/share/man/man8/{halt,poweroff,reboot,runlevel,shutdown,telinit}.8 \
+			|| die
+		rm "${D}"/usr/share/man/man1/init.1 || die
+	fi
 
 	# Create /run/lock as required by new baselay/OpenRC compat.
 	insinto /usr/lib/tmpfiles.d
