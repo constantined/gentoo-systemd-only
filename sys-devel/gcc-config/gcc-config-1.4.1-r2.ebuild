@@ -16,7 +16,8 @@ SLOT="0"
 KEYWORDS="alpha amd64 arm hppa ia64 m68k ~mips ppc ppc64 s390 sh sparc ~sparc-fbsd x86 ~x86-fbsd"
 IUSE=""
 
-RDEPEND="!app-admin/eselect-compiler"
+RDEPEND="!app-admin/eselect-compiler
+	sys-libs/elog-functions"
 
 S=${WORKDIR}
 
@@ -40,9 +41,6 @@ src_install() {
 
 	exeinto /usr/$(get_libdir)/misc
 	newexe wrapper gcc-config || die "install wrapper"
-	
-	insinto /usr/$(get_libdir)/misc
-	doins "${FILESDIR}/elog-functions.sh"
 }
 
 pkg_postinst() {
