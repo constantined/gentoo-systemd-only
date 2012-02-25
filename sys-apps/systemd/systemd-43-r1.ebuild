@@ -28,7 +28,7 @@ RDEPEND=">=sys-apps/dbus-1.4.10
 	>=sys-apps/util-linux-2.19
 	>=sys-fs/udev-172
 	sys-libs/libcap
-	doc? ( dev-libs/libxslt )
+	doc? ( app-text/docbook2X )
 	acl? ( sys-apps/acl )
 	audit? ( >=sys-process/audit-2 )
 	cryptsetup? ( sys-fs/cryptsetup )
