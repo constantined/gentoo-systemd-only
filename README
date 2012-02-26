@@ -166,6 +166,44 @@ emerge --newuse --deep --update --verbose world
 and, *in theory*, everything should get back to normal.
 
 
+The bug #373219
+---------------
+
+Bug #373219 (https://bugs.gentoo.org/show_bug.cgi?id=373219) deals
+with the fact that there are scripts all over the portage tree which
+implicitly depend on sys-apps/openrc since they source
+/etc/init.d/functions.sh. The devs responsible for OpenRC seems to
+resist the idea of splitting the e* log functions from OpenRC (which
+is what most of the scripts on the tree seems to be using) into
+another package, so if you remove OpenRC (which is one of the goals of
+this overlay), you loose /etc/init.d/functions.sh and therefore some
+scripts on the tree will stop working.
+
+To workaround this, I'm introducing sys-libs/elog-functions, which
+provides compatibilty functions for the e* log functions from OpenRC,
+and I'm introducing alternative versions of packages that depend
+(implicitly) on OpenRC so this new versions will depend on
+sys-libs/elog-functions. Right now that's only sys-apps/gcc-config.
+
+In particular, locale-gen (from sys-libs/glibc) needs a similar
+treatment, but I will not create an alternative version of this ebuild
+until I completely understand the original (it's a complicated
+ebuild). If you want locale-gen to work with this overlay, just
+replace the line
+
+source /etc/init.d/functions.sh || {
+
+with
+
+source /usr/lib64/misc/elog-functions.sh || {
+
+And actually you can do that for any other script that you find on the
+tree sourcing /etc/init.d/functions.sh. If
+/usr/lib64/misc/elog-functions.sh fails to provide all the
+functionality a script needs, please send me a note and I will try to
+fix it.
+
+
 Changes from the official portage tree:
 ---------------------------------------
 
