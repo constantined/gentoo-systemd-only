@@ -63,7 +63,7 @@ eend()
 		_e_tmp_c=$((_e_tmp_c + 1))
 	done
 	if [ "$1" == 0 ]; then
-		_e_log "${_e_tmp_spaces}${BRACKET}[${NORMAL} ${GOOD}OK${NORMAL} ${BRACKET}]${NORMAL}\n"
+		_e_log "${_e_tmp_spaces}${BRACKET}[${NORMAL} ${GOOD}ok${NORMAL} ${BRACKET}]${NORMAL}\n"
 	else
 		_e_log "${_e_tmp_spaces}${BRACKET}[${NORMAL} ${BAD}!!${NORMAL} ${BRACKET}]${NORMAL}\n"
 	fi
