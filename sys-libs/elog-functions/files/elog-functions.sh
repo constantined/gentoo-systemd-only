@@ -52,40 +52,109 @@ function curpos()
     return "${CURPOS}"
 }
 
+function elog()
+{
+    if [ "${EINFO_QUIET}" == "true" ]; then
+	return
+    fi
+    echo -ne "${@}"
+}
+
+function errlog()
+{
+    echo -ne "${@}" > /dev/stderr
+}
+
 function einfo()
 {
-    echo -e " ${GOOD}*${NORMAL} ${@}"
+    elog " ${GOOD}*${NORMAL} ${_ELOG_INDENT}${@}\n"
 }
 
 function ewarn()
 {
-    echo -e " ${WARN}*${NORMAL} ${@}"
+    errlog " ${WARN}*${NORMAL} ${_ELOG_INDENT}${@}\n"
 }
 
 function eerror()
 {
-    echo -e " ${BAD}*${NORMAL} ${@}"
+    errlog " ${BAD}*${NORMAL} ${_ELOG_INDENT}${@}\n"
+}
+
+function veinfo()
+{
+    if [ "${EINFO_VERBOSE}"  == "true" ]; then
+	einfo "${@}"
+    fi
+}
+
+function vewarn()
+{
+    if [ "${EINFO_VERBOSE}" ]; then
+	ewarn "${@}"
+    fi
 }
 
 function ebegin()
 {
-    echo -e " ${GOOD}*${NORMAL} ${@} ..."
+    elog " ${GOOD}*${NORMAL} ${_ELOG_INDENT}${@} ...\n"
+}
+
+function ebracket()
+{
+    COLUMN="$1"
+    COLOR="$2"
+    MSG="$3"
+    curpos row
+    ROW=$?
+    ROW=$(($? - 2))
+    /usr/bin/tput cup "${ROW}" "${COLUMN}"
+    echo -e "${BRACKET}[${NORMAL} ${COLOR}${MSG}${NORMAL} ${BRACKET}]${NORMAL}"
 }
 
 function eend()
 {
+    if [ "${EINFO_QUIET}" == "true" ]; then
+	return
+    fi
+    msg="$1"
+    if [ ! -z "${msg##*[!0-9]*}" ]; then
+	retval="$msg"
+    else
+	eerror "$msg"
+	retval=1
+    fi
     # ncurses dependency
     COLUMNS=$(/usr/bin/tput cols)
+    COLUMN=$((COLUMNS - 6))
     curpos row
     ROW=$?
     ROW=$((ROW - 2))
-    COL=$((COLUMNS - 6))
-    /usr/bin/tput cup "${ROW}" "${COL}"
-    if [ "$1" != 1 ]; then
-	echo -e "${BRACKET}[${NORMAL} ${GOOD}ok${NORMAL} ${BRACKET}]${NORMAL}"
+    LBRAC="${BRACKET}[${NORMAL}"
+    RBRAC="${BRACKET}]${NORMAL}"
+    /usr/bin/tput cup "${ROW}" "${COLUMN}"
+    if [ "$retval" != 1 ]; then
+	echo -e "${LBRAC} ${GOOD}ok${NORMAL} ${RBRAC}"
     else
-	echo -e "${BRACKET}[${NORMAL} ${BAD}!!${NORMAL} ${BRACKET}]${NORMAL}"
+	echo -e "${LBRAC} ${BAD}!!${NORMAL} ${RBRAC}"
     fi
 }
 
-export -f einfo ewarn eerror ebegin eend curpos
+function eindent()
+{
+    if [ -z "${_ELOG_INDENT}" ]; then
+	export _ELOG_INDENT="  "
+    else
+	export _ELOG_INDENT="${_ELOG_INDENT}  "
+    fi
+}
+
+function eoutdent()
+{
+     if [ -z "${_ELOG_INDENT}" ]; then
+	 unset _ELOG_INDENT
+     else
+	 export _ELOG_INDENT=$(echo "${_ELOG_INDENT}" | sed "s/  //")
+     fi
+}
+
+export -f elog errlog einfo ewarn eerror veinfo vewarn ebegin eend eindent eoutdent curpos
