@@ -99,18 +99,6 @@ function ebegin()
     elog " ${GOOD}*${NORMAL} ${_ELOG_INDENT}${@} ...\n"
 }
 
-function ebracket()
-{
-    COLUMN="$1"
-    COLOR="$2"
-    MSG="$3"
-    curpos row
-    ROW=$?
-    ROW=$(($? - 2))
-    /usr/bin/tput cup "${ROW}" "${COLUMN}"
-    echo -e "${BRACKET}[${NORMAL} ${COLOR}${MSG}${NORMAL} ${BRACKET}]${NORMAL}"
-}
-
 function eend()
 {
     if [ "${EINFO_QUIET}" == "true" ]; then
