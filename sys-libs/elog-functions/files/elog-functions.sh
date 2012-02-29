@@ -1,6 +1,7 @@
 # Copyright (c) 2012 Canek Peláez Valdés <canek@ciencias.unam.mx>
 # Compatibility e* log functions from sys-apps/openrc
 
+# Shamelessly stolen from /etc/init.d/functions.sh
 for arg; do
     case "$arg" in
         --nocolor|--nocolour|-C)
@@ -9,67 +10,139 @@ for arg; do
     esac
 done
 
+# Adapted from /etc/init.d/functions.sh so we don't need eval_colors
 if [ "${EINFO_COLOR}" != NO ]; then
     if [ -z "$GOOD" ]; then
-        GOOD=$(printf '\e[1;32m')
-	WARN=$(printf '\e[1;33m')
-	BAD=$(printf '\e[1;31m')
-	HILITE=$(printf '\e[1;36m')
-	BRACKET=$(printf '\e[1;34m')
-	NORMAL=$(printf '\e[0;0m')
+        GOOD=$(echo -ne "\e[1;32m")
+	WARN=$(echo -ne "\e[1;33m")
+	BAD=$(echo -ne "\e[1;31m")
+	HILITE=$(echo -ne "\e[1;36m")
+	BRACKET=$(echo -ne "\e[1;34m")
+	NORMAL=$(echo -ne "\e[0;0m")
+	export GOOD WARN BAD HILITE BRACKET NORMAL
     fi
 fi
 
-_e_log()
+# Hack to get terminal cursor position. I believe it's OK to use it
+# since OpenRC uses terminal escape sequences anyhow
+function curpos()
 {
-	printf "$@"
+    echo -ne "\e[6n"
+    read -sdR CURPOS
+    CURPOS=${CURPOS#*[}
+
+    c=0
+    for e in $(echo $CURPOS | tr ";" "\n"); do
+	arr[c]="${e}"
+	c=$((c + 1))
+    done
+
+    case "$1" in
+	"row")
+	    return "${arr[0]}"
+	    ;;
+	"col")
+	    return "${arr[1]}"
+	    ;;
+	*)
+	    return "${CURPOS}"
+	    ;;
+    esac
+
+    return "${CURPOS}"
 }
 
-eerror()
+function elog()
 {
-	_e_log " ${BAD}*${NORMAL} $@\n"
+    if [ "${EINFO_QUIET}" == "true" ]; then
+	return
+    fi
+    echo -ne "${@}"
 }
 
-ewarn()
+function errlog()
 {
-	_e_log " ${WARN}*${NORMAL} $@\n"
+    echo -ne "${@}" > /dev/stderr
 }
 
-ebegin()
+function einfo()
 {
-	_e_tmp_msg="$@"
-	_E_LOG_EBEGIN_STR_LEN=${#_e_tmp_msg}
-	_E_LOG_EBEGIN_STR_LEN=$((_E_LOG_EBEGIN_STR_LEN + 3)) # ' * ' prefix
-	export _E_LOG_EBEGIN_STR_LEN
-	_e_log " ${GOOD}*${NORMAL} $@"
+    elog " ${GOOD}*${NORMAL} ${_ELOG_INDENT}${@}\n"
 }
 
-eend()
+function ewarn()
 {
-	# ncurses dependency
-	COLUMNS=$(/usr/bin/tput cols)
-	if [ -z "${_E_LOG_EBEGIN_STR_LEN}" ]; then
-		_E_LOG_EBEGIN_STR_LEN=0
-	fi
-	_e_tmp_needed_spaces=$((COLUMNS - _E_LOG_EBEGIN_STR_LEN - 6))
-	unset _E_LOG_EBEGIN_STR_LEN
-	if [ "${_e_tmp_needed_spaces}" -lt 0 ]; then
-		_e_tmp_needed_spaces=0
-	fi
-	_e_tmp_spaces=""
-	_e_tmp_c=0
-	while [ "${_e_tmp_c}" -lt "${_e_tmp_needed_spaces}" ]; do
-		_e_tmp_spaces="${_e_tmp_spaces} "
-		_e_tmp_c=$((_e_tmp_c + 1))
-	done
-	if [ "$1" == 0 ]; then
-		_e_log "${_e_tmp_spaces}${BRACKET}[${NORMAL} ${GOOD}ok${NORMAL} ${BRACKET}]${NORMAL}\n"
-	else
-		_e_log "${_e_tmp_spaces}${BRACKET}[${NORMAL} ${BAD}!!${NORMAL} ${BRACKET}]${NORMAL}\n"
-	fi
+    errlog " ${WARN}*${NORMAL} ${_ELOG_INDENT}${@}\n"
 }
 
-einfo()
+function eerror()
 {
-	_e_log " ${GOOD}*${NORMAL} $@\n"
+    errlog " ${BAD}*${NORMAL} ${_ELOG_INDENT}${@}\n"
 }
+
+function veinfo()
+{
+    if [ "${EINFO_VERBOSE}"  == "true" ]; then
+	einfo "${@}"
+    fi
+}
+
+function vewarn()
+{
+    if [ "${EINFO_VERBOSE}" ]; then
+	ewarn "${@}"
+    fi
+}
+
+function ebegin()
+{
+    elog " ${GOOD}*${NORMAL} ${_ELOG_INDENT}${@} ...\n"
+}
+
+function eend()
+{
+    if [ "${EINFO_QUIET}" == "true" ]; then
+	return
+    fi
+    msg="$1"
+    if [ ! -z "${msg##*[!0-9]*}" ]; then
+	retval="$msg"
+    else
+	eerror "$msg"
+	retval=1
+    fi
+    # ncurses dependency
+    COLUMNS=$(/usr/bin/tput cols)
+    COLUMN=$((COLUMNS - 6))
+    curpos row
+    ROW=$?
+    ROW=$((ROW - 2))
+    LBRAC="${BRACKET}[${NORMAL}"
+    RBRAC="${BRACKET}]${NORMAL}"
+    /usr/bin/tput cup "${ROW}" "${COLUMN}"
+    if [ "$retval" != 1 ]; then
+	echo -e "${LBRAC} ${GOOD}ok${NORMAL} ${RBRAC}"
+    else
+	echo -e "${LBRAC} ${BAD}!!${NORMAL} ${RBRAC}"
+    fi
+}
+
+function eindent()
+{
+    if [ -z "${_ELOG_INDENT}" ]; then
+	export _ELOG_INDENT="  "
+    else
+	export _ELOG_INDENT="${_ELOG_INDENT}  "
+    fi
+}
+
+function eoutdent()
+{
+     if [ -z "${_ELOG_INDENT}" ]; then
+	 unset _ELOG_INDENT
+     else
+	 export _ELOG_INDENT=$(echo "${_ELOG_INDENT}" | sed "s/  //")
+     fi
+}
+
+export -f elog errlog einfo ewarn eerror veinfo vewarn ebegin eend eindent eoutdent curpos
