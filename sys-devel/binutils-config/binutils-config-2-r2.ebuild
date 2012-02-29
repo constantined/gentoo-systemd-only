@@ -13,7 +13,8 @@ SLOT="0"
 KEYWORDS="alpha amd64 arm hppa ia64 m68k ~mips ppc ppc64 s390 sh sparc x86 ~sparc-fbsd ~x86-fbsd"
 IUSE=""
 
-RDEPEND="userland_GNU? ( >=sys-apps/findutils-4.2 )"
+RDEPEND="userland_GNU? ( >=sys-apps/findutils-4.2 )
+	sys-libs/elog-functions"
 
 src_install() {
 	newbin "${FILESDIR}"/${PN}-${PV} ${PN} || die

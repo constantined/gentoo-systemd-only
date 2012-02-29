@@ -16,7 +16,8 @@ IUSE=""
 
 DEPEND="app-shells/bash"
 RDEPEND="${DEPEND}
-	dev-lang/perl"
+	dev-lang/perl
+	sys-libs/elog-functions"
 
 src_install() {
 	dosbin perl-cleaner || die
