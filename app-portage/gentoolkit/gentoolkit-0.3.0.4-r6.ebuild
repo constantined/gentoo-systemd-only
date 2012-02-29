@@ -32,7 +32,8 @@ RDEPEND="${DEPEND}
 	dev-python/argparse
 	|| ( >=sys-apps/coreutils-8.15 app-misc/realpath sys-freebsd/freebsd-bin )
 	sys-apps/gawk
-	sys-apps/grep"
+	sys-apps/grep
+	sys-libs/elog-functions"
 
 distutils_src_compile_pre_hook() {
 	echo VERSION="${PVR}" "$(PYTHON)" setup.py set_version

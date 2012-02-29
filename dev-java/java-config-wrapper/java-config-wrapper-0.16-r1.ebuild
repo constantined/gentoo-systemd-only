@@ -14,7 +14,8 @@ KEYWORDS="alpha amd64 arm ~hppa ia64 ppc ppc64 ~sparc x86 ~x86-fbsd"
 IUSE=""
 
 DEPEND="!<dev-java/java-config-1.3"
-RDEPEND="app-portage/portage-utils"
+RDEPEND="app-portage/portage-utils
+	sys-libs/elog-functions"
 
 src_install() {
 	dobin src/shell/* || die

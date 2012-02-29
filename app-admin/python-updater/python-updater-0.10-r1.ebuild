@@ -24,7 +24,8 @@ IUSE=""
 
 DEPEND="$([[ "${PV}" == "9999" ]] && echo "sys-apps/help2man")"
 RDEPEND="dev-lang/python
-	|| ( >=sys-apps/portage-2.1.6 >=sys-apps/paludis-0.56.0 )"
+	|| ( >=sys-apps/portage-2.1.6 >=sys-apps/paludis-0.56.0 )
+	sys-libs/elog-functions"
 
 src_compile() {
 	if [[ "${PV}" == "9999" ]]; then
