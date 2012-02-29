@@ -11,19 +11,19 @@ done
 
 if [ "${EINFO_COLOR}" != NO ]; then
     if [ -z "$GOOD" ]; then
-        GOOD=$(printf "\e[1;32m")
-	WARN=$(printf "\e[1;33m")
-	BAD=$(printf "\e[1;31m")
-	HILITE=$(printf "\e[1;36m")
-	BRACKET=$(printf "\e[1;34m")
-	NORMAL=$(printf "\e[0;0m")
+        GOOD=$(echo -ne "\e[1;32m")
+	WARN=$(echo -ne "\e[1;33m")
+	BAD=$(echo -ne "\e[1;31m")
+	HILITE=$(echo -ne "\e[1;36m")
+	BRACKET=$(echo -ne "\e[1;34m")
+	NORMAL=$(echo -ne "\e[0;0m")
 	export GOOD WARN BAD HILITE BRACKET NORMAL
     fi
 fi
 
 function curcol()
 {
-    echo -en "\e[6n"
+    echo -ne "\e[6n"
     read -sdR CURPOS
     CURPOS=${CURPOS#*[}
 	
@@ -41,10 +41,10 @@ function einfo()
     _e_NL="\n"
     curcol
     if [ "$?" != "1" ]; then
-	printf "\n"
+	echo ""
 	_e_NL=""
     fi
-    printf " ${GOOD}*${NORMAL} ${@}${_e_NL}"
+    echo -ne " ${GOOD}*${NORMAL} ${@}${_e_NL}"
 }
 
 function ewarn()
@@ -52,10 +52,10 @@ function ewarn()
     _e_NL="\n"
     curcol
     if [ "$?" != "1" ]; then
-	printf "\n"
+	echo ""
 	_e_NL=""
     fi
-    printf " ${WARN}*${NORMAL} ${@}\n"
+    echo -ne " ${WARN}*${NORMAL} ${@}${_e_NL}"
 }
 
 function eerror()
@@ -63,10 +63,10 @@ function eerror()
     _e_NL="\n"
     curcol
     if [ "$?" != "1" ]; then
-	printf "\n"
+	echo ""
 	_e_NL=""
     fi
-    printf " ${BAD}*${NORMAL} ${@}\n"
+    echo -ne " ${BAD}*${NORMAL} ${@}${_e_NL}"
 }
 
 function ebegin()
@@ -74,10 +74,10 @@ function ebegin()
     _e_NL="\n"
     curcol
     if [ "$?" != "1" ]; then
-	printf "\n"
+	echo ""
 	_e_NL=""
     fi
-    printf " ${GOOD}*${NORMAL} ${@} ..."
+    echo -ne " ${GOOD}*${NORMAL} ${@} ..."
 }
 
 function eend()
@@ -86,7 +86,7 @@ function eend()
     COLUMNS=$(/usr/bin/tput cols)
     curcol
     CURCOL=$?
-    _e_tmp_needed_spaces=$((COLUMNS - CURCOL - 6))
+    _e_tmp_needed_spaces=$((COLUMNS - CURCOL - 5))
     if [ "${_e_tmp_needed_spaces}" -lt 0 ]; then
 	_e_tmp_needed_spaces=0
     fi
@@ -98,12 +98,12 @@ function eend()
     done
     _e_tmp_n_spaces=${#_e_tmp_spaces}
     if [ "$1" != 1 ]; then
-	printf "${_e_tmp_spaces}${BRACKET}[${NORMAL} "
-	printf "${GOOD}ok${NORMAL} ${BRACKET}]${NORMAL}\n"
+	echo -ne "${_e_tmp_spaces}${BRACKET}[${NORMAL} "
+	echo -e "${GOOD}ok${NORMAL} ${BRACKET}]${NORMAL}"
     else
-	printf "${_e_tmp_spaces}${BRACKET}[${NORMAL} "
-	printf "${BAD}!!${NORMAL} ${BRACKET}]${NORMAL}\n"
+	echo -ne "${_e_tmp_spaces}${BRACKET}[${NORMAL} "
+	echo -e "${BAD}!!${NORMAL} ${BRACKET}]${NORMAL}"
     fi
 }
 
-export -f einfo ewarn eerror ebegin eend
+export -f einfo ewarn eerror ebegin eend curcol
