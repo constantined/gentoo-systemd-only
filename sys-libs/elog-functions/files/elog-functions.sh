@@ -1,6 +1,7 @@
 # Copyright (c) 2012 Canek Peláez Valdés <canek@ciencias.unam.mx>
 # Compatibility e* log functions from sys-apps/openrc
 
+# Shamelessly stolen from /etc/init.d/functions.sh
 for arg; do
     case "$arg" in
         --nocolor|--nocolour|-C)
@@ -9,6 +10,7 @@ for arg; do
     esac
 done
 
+# Adapted from /etc/init.d/functions.sh so we don't need eval_colors
 if [ "${EINFO_COLOR}" != NO ]; then
     if [ -z "$GOOD" ]; then
         GOOD=$(echo -ne "\e[1;32m")
@@ -21,89 +23,69 @@ if [ "${EINFO_COLOR}" != NO ]; then
     fi
 fi
 
-function curcol()
+# Hack to get terminal cursor position. I believe it's OK to use it
+# since OpenRC uses terminal escape sequences anyhow
+function curpos()
 {
     echo -ne "\e[6n"
     read -sdR CURPOS
     CURPOS=${CURPOS#*[}
-	
+
     c=0
     for e in $(echo $CURPOS | tr ";" "\n"); do
 	arr[c]="${e}"
 	c=$((c + 1))
     done
 
-    return "${arr[1]}"
+    case "$1" in
+	"row")
+	    return "${arr[0]}"
+	    ;;
+	"col")
+	    return "${arr[1]}"
+	    ;;
+	*)
+	    return "${CURPOS}"
+	    ;;
+    esac
+
+    return "${CURPOS}"
 }
 
 function einfo()
 {
-    _e_NL="\n"
-    curcol
-    if [ "$?" != "1" ]; then
-	echo ""
-	_e_NL=""
-    fi
-    echo -ne " ${GOOD}*${NORMAL} ${@}${_e_NL}"
+    echo -e " ${GOOD}*${NORMAL} ${@}"
 }
 
 function ewarn()
 {
-    _e_NL="\n"
-    curcol
-    if [ "$?" != "1" ]; then
-	echo ""
-	_e_NL=""
-    fi
-    echo -ne " ${WARN}*${NORMAL} ${@}${_e_NL}"
+    echo -e " ${WARN}*${NORMAL} ${@}"
 }
 
 function eerror()
 {
-    _e_NL="\n"
-    curcol
-    if [ "$?" != "1" ]; then
-	echo ""
-	_e_NL=""
-    fi
-    echo -ne " ${BAD}*${NORMAL} ${@}${_e_NL}"
+    echo -e " ${BAD}*${NORMAL} ${@}"
 }
 
 function ebegin()
 {
-    _e_NL="\n"
-    curcol
-    if [ "$?" != "1" ]; then
-	echo ""
-	_e_NL=""
-    fi
-    echo -ne " ${GOOD}*${NORMAL} ${@} ..."
+    echo -e " ${GOOD}*${NORMAL} ${@} ..."
 }
 
 function eend()
 {
     # ncurses dependency
     COLUMNS=$(/usr/bin/tput cols)
-    curcol
-    CURCOL=$?
-    _e_tmp_needed_spaces=$((COLUMNS - CURCOL - 5))
-    if [ "${_e_tmp_needed_spaces}" -lt 0 ]; then
-	_e_tmp_needed_spaces=0
-    fi
-    _e_tmp_spaces=""
-    _e_tmp_c=0
-    while [ "${_e_tmp_c}" -lt "${_e_tmp_needed_spaces}" ]; do
-	_e_tmp_spaces="${_e_tmp_spaces} "
-	_e_tmp_c=$((_e_tmp_c + 1))
-    done
-    _e_tmp_n_spaces=${#_e_tmp_spaces}
+    curpos row
+    ROW=$?
+    ROW=$((ROW - 2))
+    COL=$((COLUMNS - 6))
+    /usr/bin/tput cup "${ROW}" "${COL}"
     if [ "$1" != 1 ]; then
-	echo -ne "${_e_tmp_spaces}${BRACKET}[${NORMAL} "
-	echo -e "${GOOD}ok${NORMAL} ${BRACKET}]${NORMAL}"
+	echo -e "${BRACKET}[${NORMAL} ${GOOD}ok${NORMAL} ${BRACKET}]${NORMAL}"
     else
-	echo -ne "${_e_tmp_spaces}${BRACKET}[${NORMAL} "
-	echo -e "${BAD}!!${NORMAL} ${BRACKET}]${NORMAL}"
+	echo -e "${BRACKET}[${NORMAL} ${BAD}!!${NORMAL} ${BRACKET}]${NORMAL}"
     fi
 }
 
-export -f einfo ewarn eerror ebegin eend curcol
+export -f einfo ewarn eerror ebegin eend curpos
