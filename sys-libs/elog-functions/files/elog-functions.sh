@@ -11,65 +11,99 @@ done
 
 if [ "${EINFO_COLOR}" != NO ]; then
     if [ -z "$GOOD" ]; then
-        GOOD=$(printf '\e[1;32m')
-	WARN=$(printf '\e[1;33m')
-	BAD=$(printf '\e[1;31m')
-	HILITE=$(printf '\e[1;36m')
-	BRACKET=$(printf '\e[1;34m')
-	NORMAL=$(printf '\e[0;0m')
+        GOOD=$(printf "\e[1;32m")
+	WARN=$(printf "\e[1;33m")
+	BAD=$(printf "\e[1;31m")
+	HILITE=$(printf "\e[1;36m")
+	BRACKET=$(printf "\e[1;34m")
+	NORMAL=$(printf "\e[0;0m")
+	export GOOD WARN BAD HILITE BRACKET NORMAL
     fi
 fi
 
-_e_log()
+function curcol()
 {
-	printf "$@"
+    echo -en "\e[6n"
+    read -sdR CURPOS
+    CURPOS=${CURPOS#*[}
+	
+    c=0
+    for e in $(echo $CURPOS | tr ";" "\n"); do
+	arr[c]="${e}"
+	c=$((c + 1))
+    done
+
+    return "${arr[1]}"
 }
 
-eerror()
+function einfo()
 {
-	_e_log " ${BAD}*${NORMAL} $@\n"
+    _e_NL="\n"
+    curcol
+    if [ "$?" != "1" ]; then
+	printf "\n"
+	_e_NL=""
+    fi
+    printf " ${GOOD}*${NORMAL} ${@}${_e_NL}"
 }
 
-ewarn()
+function ewarn()
 {
-	_e_log " ${WARN}*${NORMAL} $@\n"
+    _e_NL="\n"
+    curcol
+    if [ "$?" != "1" ]; then
+	printf "\n"
+	_e_NL=""
+    fi
+    printf " ${WARN}*${NORMAL} ${@}\n"
 }
 
-ebegin()
+function eerror()
 {
-	_e_tmp_msg="$@"
-	_E_LOG_EBEGIN_STR_LEN=${#_e_tmp_msg}
-	_E_LOG_EBEGIN_STR_LEN=$((_E_LOG_EBEGIN_STR_LEN + 3)) # ' * ' prefix
-	export _E_LOG_EBEGIN_STR_LEN
-	_e_log " ${GOOD}*${NORMAL} $@"
+    _e_NL="\n"
+    curcol
+    if [ "$?" != "1" ]; then
+	printf "\n"
+	_e_NL=""
+    fi
+    printf " ${BAD}*${NORMAL} ${@}\n"
 }
 
-eend()
+function ebegin()
 {
-	# ncurses dependency
-	COLUMNS=$(/usr/bin/tput cols)
-	if [ -z "${_E_LOG_EBEGIN_STR_LEN}" ]; then
-		_E_LOG_EBEGIN_STR_LEN=0
-	fi
-	_e_tmp_needed_spaces=$((COLUMNS - _E_LOG_EBEGIN_STR_LEN - 6))
-	unset _E_LOG_EBEGIN_STR_LEN
-	if [ "${_e_tmp_needed_spaces}" -lt 0 ]; then
-		_e_tmp_needed_spaces=0
-	fi
-	_e_tmp_spaces=""
-	_e_tmp_c=0
-	while [ "${_e_tmp_c}" -lt "${_e_tmp_needed_spaces}" ]; do
-		_e_tmp_spaces="${_e_tmp_spaces} "
-		_e_tmp_c=$((_e_tmp_c + 1))
-	done
-	if [ "$1" == 0 ]; then
-		_e_log "${_e_tmp_spaces}${BRACKET}[${NORMAL} ${GOOD}ok${NORMAL} ${BRACKET}]${NORMAL}\n"
-	else
-		_e_log "${_e_tmp_spaces}${BRACKET}[${NORMAL} ${BAD}!!${NORMAL} ${BRACKET}]${NORMAL}\n"
-	fi
+    _e_NL="\n"
+    curcol
+    if [ "$?" != "1" ]; then
+	printf "\n"
+	_e_NL=""
+    fi
+    printf " ${GOOD}*${NORMAL} ${@} ..."
 }
 
-einfo()
+function eend()
 {
-	_e_log " ${GOOD}*${NORMAL} $@\n"
+    # ncurses dependency
+    COLUMNS=$(/usr/bin/tput cols)
+    curcol
+    CURCOL=$?
+    _e_tmp_needed_spaces=$((COLUMNS - CURCOL - 6))
+    if [ "${_e_tmp_needed_spaces}" -lt 0 ]; then
+	_e_tmp_needed_spaces=0
+    fi
+    _e_tmp_spaces=""
+    _e_tmp_c=0
+    while [ "${_e_tmp_c}" -lt "${_e_tmp_needed_spaces}" ]; do
+	_e_tmp_spaces="${_e_tmp_spaces} "
+	_e_tmp_c=$((_e_tmp_c + 1))
+    done
+    _e_tmp_n_spaces=${#_e_tmp_spaces}
+    if [ "$1" != 1 ]; then
+	printf "${_e_tmp_spaces}${BRACKET}[${NORMAL} "
+	printf "${GOOD}ok${NORMAL} ${BRACKET}]${NORMAL}\n"
+    else
+	printf "${_e_tmp_spaces}${BRACKET}[${NORMAL} "
+	printf "${BAD}!!${NORMAL} ${BRACKET}]${NORMAL}\n"
+    fi
 }
+
+export -f einfo ewarn eerror ebegin eend
