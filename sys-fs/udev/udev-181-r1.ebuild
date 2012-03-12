@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-fs/udev/udev-181.ebuild,v 1.1 2012/02/08 04:26:59 williamh Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-fs/udev/udev-181.ebuild,v 1.3 2012/03/11 01:44:14 williamh Exp $
 
 EAPI=4
 
@@ -36,7 +36,7 @@ COMMON_DEPEND="selinux? ( sys-libs/libselinux )
 	acl? ( sys-apps/acl dev-libs/glib:2 )
 	gudev? ( dev-libs/glib:2 )
 	introspection? ( dev-libs/gobject-introspection )
-	~sys-apps/kmod-5
+	>=sys-apps/kmod-5
 	>=sys-apps/util-linux-2.20
 	>=sys-libs/glibc-2.10"
 
@@ -63,7 +63,10 @@ RDEPEND="${COMMON_DEPEND}
 	acl? ( sys-apps/coreutils[acl] )
 	!sys-apps/coldplug
 	!<sys-fs/lvm2-2.02.45
-	!sys-fs/device-mapper"
+	!sys-fs/device-mapper
+	!<sys-apps/openrc-0.9.9
+	!<sys-kernel/dracut-017-r1
+	!<sys-kernel/genkernel-3.4.25"
 
 # required kernel options
 CONFIG_CHECK="~BLK_DEV_BSG ~DEVTMPFS ~HOTPLUG ~INOTIFY_USER ~NET ~PROC_FS
