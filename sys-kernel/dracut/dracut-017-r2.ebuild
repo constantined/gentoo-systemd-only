@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-kernel/dracut/dracut-016.ebuild,v 1.4 2012/02/18 14:42:44 aidecoe Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-kernel/dracut/dracut-017-r1.ebuild,v 1.2 2012/03/05 07:29:05 aidecoe Exp $
 
 EAPI=4
 
@@ -67,7 +67,7 @@ RDEPEND="
 	>=sys-apps/util-linux-2.20
 	>=sys-fs/udev-164
 	app-arch/cpio
-	virtual/modutils
+	|| ( >=sys-apps/module-init-tools-3.8 >sys-apps/kmod-5[tools] )
 
 	debug? ( dev-util/strace )
 	device-mapper? ( || ( sys-fs/device-mapper >=sys-fs/lvm2-2.02.33 ) )
@@ -121,15 +121,25 @@ any_module() {
 # $1 = module name
 # Module name can be specified without number prefix.
 rm_module() {
-	local m
+	local force m
+	[[ $1 = -f ]] && force=-f
 
 	for m in $@; do
 		if [[ $m =~ ^[0-9][0-9][^\ ]*$ ]]; then
-			rm --interactive=never -r "${modules_dir}"/$m
+			rm ${force} --interactive=never -r "${modules_dir}"/$m
 		else
-			rm --interactive=never -r "${modules_dir}"/[0-9][0-9]$m
+			rm ${force} --interactive=never -r "${modules_dir}"/[0-9][0-9]$m
 		fi
 	done
+}
+
+# Displays Gentoo Base System major release number
+base_sys_maj_ver() {
+	local line
+
+	read line < /etc/gentoo-release
+	line=${line##* }
+	echo "${line%%.*}"
 }
 
 #
@@ -138,6 +148,10 @@ rm_module() {
 
 src_prepare() {
 	epatch "${FILESDIR}/${P}-multipath-udev-rules.patch"
+	epatch "${FILESDIR}/${P}-usrmount-fstab-comments.patch"
+	epatch "${FILESDIR}/${P}-usrmount-newroot-etc-check.patch"
+	epatch "${FILESDIR}/${P}-convertfs-fix-check-for-usr-bin.patch"
+	epatch "${FILESDIR}/${P}-crypt-simplify-rd.luks.uuid-testing.patch"
 }
 
 src_compile() {
@@ -154,6 +168,15 @@ src_install() {
 	dodir /var/lib/dracut/overlay
 	dodoc HACKING TODO AUTHORS NEWS README*
 
+	case "$(base_sys_maj_ver)" in
+		1) gen2conf=gentoo.conf ;;
+		2) gen2conf=gentoo-openrc.conf ;;
+		*) die "Expected ver. 1 or 2 of Gentoo Base System (/etc/gentoo-release)."
+	esac
+
+	insinto /etc/dracut.conf.d
+	newins dracut.conf.d/${gen2conf}.example ${gen2conf}
+
 	insinto /etc/logrotate.d
 	newins dracut.logrotate dracut
 
@@ -168,7 +191,7 @@ src_install() {
 
 	# Remove modules not enabled by USE flags
 	for module in ${IUSE_DRACUT_MODULES} ; do
-		! use ${module} && rm_module ${module#dracut_modules_}
+		! use ${module} && rm_module -f ${module#dracut_modules_}
 	done
 
 	# Those flags are specific, and even are corresponding to modules, they need
@@ -201,12 +224,13 @@ pkg_postinst() {
 		ewarn "kernel before booting image generated with this Dracut version."
 		echo
 
-		local CONFIG_CHECK="~BLK_DEV_INITRD ~DEVTMPFS"
+		local CONFIG_CHECK="~BLK_DEV_INITRD ~DEVTMPFS ~MODULES"
 
 		# Kernel configuration options descriptions:
 		local desc_DEVTMPFS="Maintain a devtmpfs filesystem to mount at /dev"
 		local desc_BLK_DEV_INITRD="Initial RAM filesystem and RAM disk "\
 "(initramfs/initrd) support"
+		local desc_MODULES="Enable loadable module support"
 
 		local opt desc
 
@@ -219,6 +243,16 @@ pkg_postinst() {
 		done
 
 		check_extra_config
+		echo
+	else
+		echo
+		ewarn "Your kernel configuration couldn't be checked.  Do you have"
+		ewarn "/usr/src/linux/.config file there?  Please check manually if"
+		ewarn "following options are enabled:"
+		ewarn ""
+		ewarn "  CONFIG_BLK_DEV_INITRD"
+		ewarn "  CONFIG_DEVTMPFS"
+		ewarn "  CONFIG_MODULES"
 		echo
 	fi
 
