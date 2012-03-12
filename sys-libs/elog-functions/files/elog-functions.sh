@@ -23,35 +23,6 @@ if [ "${EINFO_COLOR}" != NO ]; then
     fi
 fi
 
-# Hack to get terminal cursor position. I believe it's OK to use it
-# since OpenRC uses terminal escape sequences anyhow
-function curpos()
-{
-    echo -ne "\e[6n"
-    read -sdR CURPOS
-    CURPOS=${CURPOS#*[}
-
-    c=0
-    for e in $(echo $CURPOS | tr ";" "\n"); do
-	arr[c]="${e}"
-	c=$((c + 1))
-    done
-
-    case "$1" in
-	"row")
-	    return "${arr[0]}"
-	    ;;
-	"col")
-	    return "${arr[1]}"
-	    ;;
-	*)
-	    return "${CURPOS}"
-	    ;;
-    esac
-
-    return "${CURPOS}"
-}
-
 function elog()
 {
     if [ "${EINFO_QUIET}" == "true" ]; then
@@ -111,15 +82,15 @@ function eend()
 	eerror "$msg"
 	retval=1
     fi
+    # go up
+    echo -ne "\e[1A"
     # ncurses dependency
     COLUMNS=$(/usr/bin/tput cols)
     COLUMN=$((COLUMNS - 6))
-    curpos row
-    ROW=$?
-    ROW=$((ROW - 2))
+    # goto column
+    echo -ne "\e[${COLUMN}C"
     LBRAC="${BRACKET}[${NORMAL}"
     RBRAC="${BRACKET}]${NORMAL}"
-    /usr/bin/tput cup "${ROW}" "${COLUMN}"
     if [ "$retval" != 1 ]; then
 	echo -e "${LBRAC} ${GOOD}ok${NORMAL} ${RBRAC}"
     else
@@ -145,4 +116,4 @@ function eoutdent()
      fi
 }
 
-export -f elog errlog einfo ewarn eerror veinfo vewarn ebegin eend eindent eoutdent curpos
+export -f elog errlog einfo ewarn eerror veinfo vewarn ebegin eend eindent eoutdent
