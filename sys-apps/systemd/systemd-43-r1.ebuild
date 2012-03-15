@@ -117,9 +117,11 @@ src_install() {
 	rm -r "${D}"/tmp || die
 
 	# we just keep sysvinit tools, so no need for the mans
-	rm "${D}"/usr/share/man/man8/{halt,poweroff,reboot,runlevel,shutdown,telinit}.8 \
-		|| die
-	rm "${D}"/usr/share/man/man1/init.1 || die
+	if use doc; then
+		rm "${D}"/usr/share/man/man8/{halt,poweroff,reboot,runlevel,shutdown,telinit}.8 \
+			|| die
+		rm "${D}"/usr/share/man/man1/init.1 || die
+	fi
 
 	# Create /run/lock as required by new baselay/OpenRC compat.
 	insinto /usr/lib/tmpfiles.d
