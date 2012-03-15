@@ -13,7 +13,7 @@ SRC_URI="http://www.freedesktop.org/software/systemd/${P}.tar.xz"
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="~amd64 ~x86"
-IUSE="acl audit cryptsetup gtk lzma pam plymouth selinux tcpd"
+IUSE="acl audit cryptsetup doc gtk lzma pam plymouth selinux tcpd"
 
 # Vala-0.10 doesn't work with libnotify 0.7.1
 VALASLOT="0.14"
@@ -33,6 +33,7 @@ RDEPEND=">=sys-apps/dbus-1.4.10
 	acl? ( sys-apps/acl )
 	audit? ( >=sys-process/audit-2 )
 	cryptsetup? ( sys-fs/cryptsetup )
+	doc? ( app-text/docbook2X )
 	gtk? (
 		dev-libs/dbus-glib
 		>=dev-libs/glib-2.26
