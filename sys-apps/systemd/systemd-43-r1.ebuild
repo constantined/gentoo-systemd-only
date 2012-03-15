@@ -86,6 +86,7 @@ src_configure() {
 		$(use_enable acl)
 		$(use_enable audit)
 		$(use_enable cryptsetup libcryptsetup)
+		$(use_enable doc manpages)
 		$(use_enable gtk)
 		$(use_enable lzma xz)
 		$(use_enable pam)
