@@ -1,290 +1,254 @@
+
+
 A systemd-only Gentoo system
-============================
 
-Homepage:
-
-    http://xochitl.matem.unam.mx/~canek/gentoo-systemd-only/index.html
-
-Git repository:
-
-    git clone git://github.com/canek-pelaez/gentoo-systemd-only.git
+Homepage: http://xochitl.matem.unam.mx/~canek/gentoo-systemd-only/index.html
+Git repository: git clone git://github.com/canek-pelaez/gentoo-systemd-only.git
 
 Introduction
-------------
 
-The package sys-apps/systemd was added to the portage tree in June of
-2011, and since then support for it has only been growing. As of now
-(February, 2012), almost any hardware configuration it's able to run
-Linux with systemd.
+The package sys-apps/systemd was added to the portage tree in June of 2011, and
+since then support for it has only been growing. As of now (March, 2012),
+almost any hardware configuration it's able to run Linux with systemd.
+The systemd package is written as a drop-in replacement for sysvinit; however,
+Gentoo utilizes OpenRC, a different init system that runs on top of sysvinit.
+This makes it impossible for systemd to use any of the init scripts that Gentoo
+packages normally install in /etc/init.d.
+The Gentoo developers that introduced systemd into the portage tree decided
+(quite wisely) that systemd should be able to be installed in parallel to
+OpenRC, so that users will be able to test it first and get back to the default
+setup if something went wrong, or if the user didn't liked systemd.
+However, it is not possible to install systemd as the only init system in a
+Gentoo machine right now: the package sys-apps/baselayout is included in the
+@system set, and baselayout depends on openrc, so every single Gentoo
+installation includes both packages, unless the user explicitly configures her
+system to avoid the installation of said packages.
+This overlay is an experiment to see how difficult it is to remove openrc from
+a Gentoo system, so it runs only with systemd. I will try to keep the overlay
+in sync with the portage tree until the proposed
 
-The systemd package is written as a drop-in replacement for sysvinit;
-however, Gentoo utilizes OpenRC, a different init system that runs on
-top of sysvinit. This makes it impossible for systemd to use any of
-the init scripts that Gentoo packages normally install in /etc/init.d.
+Why
 
-The Gentoo developers that introduced systemd into the portage tree
-decided (quite wisely) that systemd should be able to be installed in
-parallel to OpenRC, so that users will be able to test it first and
-get back to the default setup if something went wrong, or if the user
-didn't liked systemd.
-
-However, it is not possible to install only systemd in a Gentoo system
-right now: the package sys-apps/baselayout is included in the @system
-set, and baselayout depends on openrc, so every single Gentoo
-installation includes both packages, unless the user explicitly
-configures her system to avoid the installation of said packages.
-
-This overlay is an experiment to see how difficult it is to remove
-openrc from a Gentoo system, so it runs only with systemd. I will try
-to keep the overlay in sync with the portage tree until the proposed
-changes are included there.
-
+Why not?
+More seriously, Gentoo is about choice. Some of us that choose to use systemd
+see no reason on having OpenRC/baselayout installed; it's the same the other
+way around, an OpenRC user should not need to have systemd installed on her
+machine.
 
 Instructions
-------------
 
-1. Before anything, BACKUP YOUR SYSTEM AND YOUR PORTAGE CONFIGURATION.
-   Make a backup of:
-   
-   /var/lib/portage/world
-   /etc/portage
-   /etc/make.conf
 
-   WARNING: IF YOU FAIL TO FOLLOW THESE STEPS PROPERLY, YOU MAY RENDER
-   YOUR SYSTEM UNUSABLE. EVEN IF YOU FOLLOW THESE STEPS PROPERLY, YOU
-   MAY RENDER YOUR SYSTEM UNUSABLE. MAKE SURE YOU KNOW WHAT YOU ARE
-   DOING. I TAKE NO RESPONSABILITY IF THIS OVERLAY EATS YOUR SYSTEM
-   AND THEN RUNS AWAY WITH ALL YOUR VALUABLES.
-   
-   That being said: If you are already using systemd, the removal of
-   sys-apps/openrc *should* not affect your system; the removal of
-   sys-apps/sysvinit *should* also be safe, provided that you install
-   sys-apps/sysvinit-tools and sys-apps/systemd-sysv-utils; and the
-   removal of sys-apps/baselayout *should* also be safe, provided that
-   you install sys-apps/systemd-baselayout.
+  1. Before anything, BACKUP YOUR SYSTEM AND YOUR PORTAGE CONFIGURATION. Make a
+     backup of:
 
-2. Add the directory with the gentoo-systemd-only overlay to the
-   PORTDIR_OVERLAY variable in /etc/make.conf:
-   
-   PORTDIR_OVERLAY="/path/to/gentoo-systemd-only"
+          /var/lib/portage/world
+          /etc/portage
+          /etc/make.conf
+          /etc/runlevels
+          /etc/init.d
+          /etc/conf.d
 
-3. Edit /etc/portage/profile/packages (create it if it doesn't exists)
-   and add the following lines:
-   
-   -*>=sys-apps/baselayout-2
-   *>=sys-apps/systemd-baselayout-2
-   
-   The first one removes baselayout from the @system set, the second
-   one adds sys-apps/systemd-baselayout to it.
+     WARNING: IF YOU FAIL TO FOLLOW THESE STEPS PROPERLY, YOU MAY RENDER YOUR
+     SYSTEM UNUSABLE. EVEN IF YOU FOLLOW THESE STEPS PROPERLY, YOU MAY RENDER
+     YOUR SYSTEM UNUSABLE. MAKE SURE YOU KNOW WHAT YOU ARE DOING. I TAKE NO
+     RESPONSABILITY IF THIS OVERLAY EATS YOUR SYSTEM AND THEN RUNS AWAY WITH
+     ALL YOUR VALUABLES.
+     That being said: If you are already using systemd, the removal of sys-
+     apps/openrc should not affect your system; the removal of sys-apps/
+     sysvinit should also be safe, provided that you install sys-apps/sysvinit-
+     tools and sys-apps/systemd-sysv-utils; and the removal of sys-apps/
+     baselayout should also be safe, provided that you install sys-apps/
+     systemd-baselayout.
+  2. Add the directory with the gentoo-systemd-only overlay to the
+     PORTDIR_OVERLAY variable in /etc/make.conf:
 
-4. Edit /etc/portage/package.keywords and add sys-apps/sysvinit-tools,
-   sys-apps/systemd-baselayout, and sys-apps/systemd-sysv-utils:
-   
-   =sys-apps/sysvinit-tools-2.88-r2 ~amd64
-   =sys-apps/systemd-baselayout-2.0.3 ~amd64
-   =sys-apps/systemd-sysv-utils-37 ~amd64
+          PORTDIR_OVERLAY="/path/to/gentoo-systemd-only"
 
-5. Edit /etc/portage/package.unmask and add
-   sys-apps/systemd-sysv-utils to it:
-   
-   =sys-apps/kmod-5
-   =sys-apps/systemd-sysv-utils-37
+  3. Edit /etc/portage/profile/packages (create it if it doesn't exists) and
+     add the following lines:
 
-6. If necessary, add sys-apps/kmod and sys-apps/rescan-scsi-bus to
-   /etc/portage/package.keywords, and unmask sys-apps/kmod:
+          -*>=sys-apps/baselayout-2
+          *>=sys-apps/systemd-baselayout-2
 
-   /etc/portage/package.keywords:
-   =sys-apps/kmod-5 ~amd64
-   =sys-apps/rescan-scsi-bus-1.56-r1 ~amd64
-   
-   /etc/portage/package.unmask:
-   =sys-apps/kmod-5
+     The first line removes baselayout from the @system set, the second one
+     adds sys-apps/systemd-baselayout to it.
+  4. Edit /etc/portage/package.keywords and add sys-apps/sysvinit-tools, sys-
+     apps/systemd-baselayout, and sys-apps/systemd-sysv-utils:
 
-7. Uninstall sys-apps/openrc, sys-apps/baselayout and
-   sys-apps/sysvinit:
+          =sys-apps/sysvinit-tools-2.88-r2 ~amd64
+          =sys-apps/systemd-baselayout-2.0.3 ~amd64
+          =sys-apps/systemd-sysv-utils-37 ~amd64
 
-   emerge --unmerge --verbose sys-apps/openrc sys-apps/baselayout \
-   sys-apps/sysvinit
+  5. Edit /etc/portage/package.unmask and add sys-apps/systemd-sysv-utils to
+     it:
 
-8. See if you can upgrade the world:
+          =sys-apps/kmod-6
+          =sys-apps/systemd-sysv-utils-37
 
-   emerge --newuse --deep --update --verbose --pretend world
-   
-   If the emerge is feasible, go for it:
-   
-   emerge --newuse --deep --update --verbose world
-   
-   If you have to keyword and unmask packages, do it and try again.
-   
-   If in the pretended emerge, sys-apps/openrc, sys-apps/baselayout
-   or sys-apps/sysvinit try to get installed again, it means that
-   you have a package installed that need them, and for which there
-   is no alternative in this overlay. You can get back to the backup
-   you did in step 0 (you did it, right?), and simply install again
-   sys-apps/openrc, sys-apps/baselayout and sys-apps/sysvinit, or
-   you can track the offending package and create an alternative
-   ebuild that uses the replacements in this overlay (please send it
-   to me if you do). If you don't know how to do it, you can send me
-   the output of the pretendend emerge so I can create the
-   alternative ebuild, integrate it in the overlay, and then you
-   will be able to do the emerge.
+  6. If necessary, add sys-apps/kmod to /etc/portage/package.keywords, and
+     unmask sys-apps/kmod:
+
+          /etc/portage/package.keywords:
+          =sys-apps/kmod-6 ~amd64
+
+          /etc/portage/package.unmask:
+          =sys-apps/kmod-6
+
+  7. Uninstall sys-apps/openrc, sys-apps/baselayout and sys-apps/sysvinit:
+
+          emerge --unmerge --verbose sys-apps/openrc sys-apps/baselayout \
+          sys-apps/sysvinit
+
+  8. See if you can upgrade the world:
+
+          emerge --newuse --deep --update --verbose --pretend world
+
+     If the emerge is feasible, go for it:
+
+          emerge --newuse --deep --update --verbose world
+
+     If you have to keyword and unmask packages, do it and try again.
+     If in the pretended emerge, sys-apps/openrc, sys-apps/baselayout or sys-
+     apps/sysvinit try to get installed again, it means that you have a package
+     installed that needs them, and for which there is no alternative in this
+     overlay. You can get back to the backup you did in step 1 (you did it,
+     right?), and simply install again sys-apps/openrc, sys-apps/baselayout and
+     sys-apps/sysvinit, or you can track the offending package and create an
+     alternative ebuild that uses the replacements in this overlay (please send
+     it to me if you do). If you don't know how to do it, you can send me the
+     output of the pretendend emerge so I can create the alternative ebuild,
+     integrate it in the overlay, and then you will be able to do the emerge.
 
 
 OpenRC init scripts
--------------------
 
-Please note that the instructions from above only remove the package
-sys-apps/openrc: they do nothing to prevent arbitrary packages to
-install init scripts on /etc/init.d. If you want to avoid the
-installation of init scripts on /etc/init.d, please edit
-/etc/make.conf with an appropriate INSTALL_MASK variable.
+Please note that the instructions from above only remove the package sys-apps/
+openrc: they do nothing to prevent arbitrary packages to install init scripts
+on /etc/init.d. If you want to avoid the installation of init scripts on /etc/
+init.d, please edit /etc/make.conf with an appropriate INSTALL_MASK variable.
 
-9. (Optional) Add the following directories to INSTALL_MASK in
-   /etc/make.conf:
-   
-   /etc/init.d
-   /etc/conf.d
-   /etc/runlevels
-   
-   In time, those directories will be empty. If you feel adventurous,
-   you can delete them: they should not matter if you use systemd.
+  1. (Optional) Add the following directories to INSTALL_MASK in /etc/
+     make.conf:
 
-This is the same for users of OpenRC who don't want to have installed
-systemd service files on /usr/lib/systemd: they need to set up an
-appropriate INSTALL_MASK variable in /etc/make.conf.
+          /etc/init.d
+          /etc/conf.d
+          /etc/runlevels
 
+     In time, those directories will be empty. If you feel adventurous, you can
+     delete them: they should not matter if you use systemd.
+
+This is the same for users of OpenRC who don't want to have installed systemd
+service files on /usr/lib/systemd: they need to set up an appropriate
+INSTALL_MASK variable in /etc/make.conf.
 
 Getting cold feet
------------------
 
-If you want to get back to the normal portage configuration, just
-uninstall every package from the overlay, delete it and restore your
-backup from step 0 (you did a backup, right?). You then do
+If you want to get back to the normal portage configuration, just uninstall
+every package from the overlay, delete the overlay and restore your backup from
+step 1 (you did a backup, right?). You then do
 
-emerge --newuse --deep --update --verbose world
+     emerge --newuse --deep --update --verbose world
 
-and, *in theory*, everything should get back to normal.
+and, in theory, everything should get back to normal.
 
+The bug #373219 (https://bugs.gentoo.org/show_bug.cgi?id=373219)
 
-The bug #373219
----------------
-
-Bug #373219 (https://bugs.gentoo.org/show_bug.cgi?id=373219) deals
-with the fact that there are scripts all over the portage tree which
-implicitly depend on sys-apps/openrc since they source
-/etc/init.d/functions.sh. The devs responsible for OpenRC seems to
-resist the idea of splitting the e* log functions from OpenRC (which
-is what most of the scripts on the tree seems to be using) into
-another package, so if you remove OpenRC (which is one of the goals of
-this overlay), you loose /etc/init.d/functions.sh and therefore some
+Bug #373219 (https://bugs.gentoo.org/show_bug.cgi?id=373219) deals with the
+fact that there are scripts all over the portage tree which implicitly depend
+on sys-apps/openrc since they source /etc/init.d/functions.sh. The devs
+responsible for OpenRC seems to resist the idea of splitting the e* log
+functions from OpenRC (which is what most of the scripts on the tree seems to
+be using) into another package, so if you remove OpenRC (which is one of the
+goals of this overlay), you loose /etc/init.d/functions.sh and therefore some
 scripts on the tree will stop working.
+To workaround this, I'm introducing sys-libs/elog-functions, which provides
+full compatibilty functions for the e* log functions from OpenRC, and I'm
+introducing alternative versions of packages that depend (implicitly) on OpenRC
+so this new versions will depend on sys-libs/elog-functions. Right now that's:
 
-To workaround this, I'm introducing sys-libs/elog-functions, which
-provides compatibilty functions for the e* log functions from OpenRC,
-and I'm introducing alternative versions of packages that depend
-(implicitly) on OpenRC so this new versions will depend on
-sys-libs/elog-functions. Right now that's only sys-apps/gcc-config.
+* app-admin/perl-cleaner
+* app-admin/python-updater
+* app-portage/gentoolkit
+* dev-java/java-config-wrapper
+* sys-devel/binutils-config
+* sys-devel/gcc-config
 
-In particular, locale-gen (from sys-libs/glibc) needs a similar
-treatment, but I will not create an alternative version of this ebuild
-until I completely understand the original (it's a complicated
-ebuild). If you want locale-gen to work with this overlay, just
-replace the line
+They all seem to work in my systems, but please inform me if you find any
+problem. Also, if you know about other package depending implicitly on OpenRC,
+please let me know.
+Besides these packages, sys-libs/glibc provides the /usr/sbin/locale-gen
+script, and sys-devel/gcc provides /sbin/fix_libtool_files.sh (also on /usr/
+share/gcc-data/x86_64-pc-linux-gnu/${PV}/fix_libtool_files.sh). Both scripts
+sources /etc/init.d/functions.sh, but the ebuilds are complex enough for me to
+even try to provide alternatives.
+Therefore, in the no-openrc-scripts directory of this overlay you will find
+alternative versions of both locale-gen and fix_libtool_files.sh, that you can
+replace by hand.
+If you emerge sys-libs/glibc or sys-devel/gcc without OpenRC, the ebuild will
+print an error when it tries to execute an script that cannot source /etc/
+init.d/functions.sh; however, the installation will complete correctly, and you
+can run the scripts provided here afterwards.
 
-source /etc/init.d/functions.sh || {
+Changes from the official portage tree
 
-with
+You can see the (simple) changes that the ebuilds in this overlay make by doing
+a diff to the corresponding ebuilds in the portage tree.
 
-source /usr/lib64/misc/elog-functions.sh || {
+* app-admin/perl-cleaner, app-admin/python-updater, app-portage/gentoolkit,
+  dev-java/java-config-wrapper, sys-devel/binutils-config, sys-devel/gcc-
+  config:
 
-And actually you can do that for any other script that you find on the
-tree sourcing /etc/init.d/functions.sh. If
-/usr/lib64/misc/elog-functions.sh fails to provide all the
-functionality a script needs, please send me a note and I will try to
-fix it.
-
-
-Changes from the official portage tree:
----------------------------------------
-
-* eclass/linux-mod.eclass:
-
-  - Depend on virtual/modutils instead of sys-apps/module-init-tools:
-  
-    https://bugs.gentoo.org/show_bug.cgi?id=404193
+  o Depend on sys-libs/elog-functions and source /usr/lib/misc/elog-
+    functions.sh instead of /etc/init.d/functions.sh.
+    Bug #373219 (https://bugs.gentoo.org/show_bug.cgi?id=373219).
 
 * net-dns/avahi:
 
-  - Use the systemd eclass:
-  
-    https://bugs.gentoo.org/show_bug.cgi?id=366173
-
-* sys-devel/gcc-config:
-  
-  - Don't use /etc/init.d/functions.sh:
-  
-    https://bugs.gentoo.org/show_bug.cgi?id=373219
-
-* sys-kernel/dracut:
-
-  - Depend on new package sys-apps/systemd-baselayout instead of
-    sys-apps/baselayout:
-      
-    Same as above.
-      
-  - Depend on sys-apps/systemd-sysv-utils instead of
-    sys-apps/sysvinit:
-      
-    No bug filled until #399615 gets fixed and systemd-sysv-utils
-    gets unmasked.
-
-  - Depend on new package sys-apps/sysvinit-tools:
-    
-    https://bugs.gentoo.org/show_bug.cgi?id=399615
-    
-* sys-apps/rescan-scsi-bus:
-
-  - Depend on virtual/modutils instead of sys-apps/module-init-tools:
-
-    https://bugs.gentoo.org/show_bug.cgi?id=402553
+  o Use the systemd eclass:
+    Bug #366173 (https://bugs.gentoo.org/show_bug.cgi?id=366173).
 
 * sys-apps/systemd:
 
-  - Depend on new package sys-apps/sysvinit-tools instead of
-    sys-apps/sysvinit:
-
-    https://bugs.gentoo.org/show_bug.cgi?id=399615
+  o Depend on new package sys-apps/sysvinit-tools instead of sys-apps/sysvinit,
+    and also depend on sys-apps/systemd-sysv-utils:
+    Bug #399615 (https://bugs.gentoo.org/show_bug.cgi?id=399615).
+  o Introduce "doc" USE flag to conditionally depend on app-text/docbook2X,
+    necessary to build the man pages.
+    Bug #405703 (https://bugs.gentoo.org/show_bug.cgi?id=405703).
 
 * sys-apps/udev:
 
-  - Do not depend on sys-apps/baselayout:
+  o Do not depend on sys-apps/baselayout:
+    No bug filled until sys-apps/systemd-baselayout is good enough as to ask
+    for its inclusion in the portage tree.
+  o Do not depend on sys-fs/udev-init-scripts:
+    The package sys-fs/udev-init-scripts contains init scripts, a udev script
+    to call the init scripts, and a rule file to run the udev script that calls
+    the init scripts. All of this is redundant with systemd. There is also a
+    simple 40-gentoo.rules rule file: This file belongs in the udev package.
+    Bug #408379 (https://bugs.gentoo.org/show_bug.cgi?id=408379).
 
-    No bug filled until sys-apps/systemd-baselayout is good enough as
-    to ask for its inclusion in the portage tree.
-    
-  - Do not depend on sys-fs/udev-init-scripts:
-    
-    The package sys-fs/udev-init-scripts contains init scripts, a
-    udev script to call the init scripts, and a rule file to run the
-    udev script that calls the init scripts. All of this is
-    redundant with systemd. There is also a simple 40-gentoo.rules
-    rule file: This file belongs in the udev package.
+* sys-kernel/dracut:
 
-    Bug to be filled.
+  o Depend on new package sys-apps/systemd-baselayout instead of sys-apps/
+    baselayout:
+    Same as above.
+  o Depend on sys-apps/systemd-sysv-utils instead of sys-apps/sysvinit:
+    No bug filled until bug #399615 (https://bugs.gentoo.org/
+    show_bug.cgi?id=399615) gets fixed and sys-apps/systemd-sysv-utils gets
+    unmasked.
+  o Depend on new package sys-apps/sysvinit-tools:
+    Bug #399615 (https://bugs.gentoo.org/show_bug.cgi?id=399615).
 
-* x11-drivers/nvidia-drivers:
 
-  It's the same as in the tree: it's just so the modified linux-mod
-  eclass it's used.
 
 New packages:
--------------
 
-* sys-apps/sysvinit-tools: Split some utilities from
-  sys-apps/sysvinit, in response to bug 399615:
 
-  https://bugs.gentoo.org/show_bug.cgi?id=399615
-  
-* sys-apps/systemd-baselayout: Add systemd base configuration files:
+* sys-apps/sysvinit-tools:
+  Split some utilities from sys-apps/sysvinit, in response to bug #399615
+  (https://bugs.gentoo.org/show_bug.cgi?id=399615).
+* sys-apps/systemd-baselayout:
+  Add systemd base configuration files:
+  http://0pointer.de/blog/projects/the-new-configuration-files.html.
 
-  http://0pointer.de/blog/projects/the-new-configuration-files.html
