@@ -13,33 +13,37 @@ Introduction
 The package sys-apps/systemd was added to the portage tree in June of 2011, and
 since then support for it has only been growing. As of now (March, 2012),
 almost any hardware configuration it's able to run Linux with systemd.
-The systemd package is written as a drop-in replacement for sysvinit; however,
-Gentoo utilizes OpenRC, a different init system that runs on top of sysvinit.
+The systemd package is written as a drop-in replacement for SysV init; however,
+Gentoo utilizes OpenRC, a different init system that runs on top of SysV init.
 This makes it impossible for systemd to use any of the init scripts that Gentoo
 packages normally install in /etc/init.d.
 The Gentoo developers that introduced systemd into the portage tree decided
 (quite wisely) that systemd should be able to be installed in parallel to
 OpenRC, so that users will be able to test it first and get back to the default
 setup if something went wrong, or if the user didn't liked systemd.
-However, it is not possible to install systemd as the only init system in a
-Gentoo machine right now: the package sys-apps/baselayout is included in the
-@system set, and it depends on sys-apps/openrc, so every single Gentoo
-installation includes both packages, unless the user explicitly configures her
-system to avoid the installation of said packages.
+This is fine; however, if a user decides to use systemd exclusively, it is not
+possible to install it as the only init system in a Gentoo machine right now:
+The package sys-apps/baselayout is included in the @system set, and it depends
+on sys-apps/openrc, so every single Gentoo installation includes both packages,
+unless the user explicitly configures her system to avoid the installation of
+said packages.
 This overlay is an experiment to see how difficult it is to remove openrc from
 a Gentoo system, so it runs only with systemd. I will try to keep the overlay
-in sync with the portage tree until the proposed
+in sync with the portage tree until the listed bugs are fixed and the new
+ebuilds (or similar alternatives) are accepted.
 
 Why
 
 Why not?
 More seriously, Gentoo is about choice. Some of us that choose to use systemd
-see no reason on having OpenRC/baselayout installed; it's the same the other
-way around, an OpenRC user should not need to have systemd installed on her
+see no reason on having OpenRC/SysV init installed; it's the same the other way
+around, an OpenRC user should not need to have systemd installed on her
 machine.
 
 Instructions
 
+This set of instructions assume that you have already installed sys-apps/
+systemd.
 
   1. Before anything, BACKUP YOUR SYSTEM AND YOUR PORTAGE CONFIGURATION. Make a
      backup of:
@@ -60,60 +64,63 @@ Instructions
      tools and sys-apps/systemd-sysv-utils; and the removal of sys-apps/
      baselayout should also be safe, provided that you install sys-apps/
      systemd-baselayout.
-  2. Add the directory with the gentoo-systemd-only overlay to the
+  2. If haven't done it already, replace sys-apps/module-init-tools with sys-
+     apps/kmod:
+
+       # emerge --unmerge --verbose sys-apps/module-init-tools
+       # emerge --oneshot --verbose sys-apps/kmod
+
+     You will need to add sys-apps/kmod to /etc/portage/package.keywords:
+     /etc/make.conf
+
+       sys-apps/kmod
+
+  3. Add the directory with the gentoo-systemd-only overlay to the
      PORTDIR_OVERLAY variable in /etc/make.conf:
      /etc/make.conf
 
        PORTDIR_OVERLAY="/path/to/gentoo-systemd-only"
 
-  3. Edit /etc/portage/profile/packages (create it if it doesn't exists) and
+  4. Edit /etc/portage/profile/packages (create it if it doesn't exists) and
      add the following lines:
      /etc/portage/profile/packages
 
        -*>=sys-apps/baselayout-2
-       *>=sys-apps/systemd-baselayout-2
+       *>=sys-apps/systemd-baselayout-10
 
      The first line removes baselayout from the @system set, the second one
      adds sys-apps/systemd-baselayout to it.
-  4. Edit /etc/portage/package.keywords and add sys-apps/sysvinit-tools, sys-
+  5. Edit /etc/portage/package.keywords and add sys-apps/sysvinit-tools, sys-
      apps/systemd-baselayout, and sys-apps/systemd-sysv-utils:
      /etc/portage/package.keywords
 
-       =sys-apps/sysvinit-tools-2.88-r2 ~amd64
-       =sys-apps/systemd-baselayout-2.0.3 ~amd64
+       =sys-apps/sysvinit-tools-2.88-r3 ~amd64
        =sys-apps/systemd-sysv-utils-37 ~amd64
+       =sys-apps/systemd-baselayout-10.0 ~amd64
 
-  5. Edit /etc/portage/package.unmask and add sys-apps/systemd-sysv-utils to
+     The first two packages replace sys-apps/sysvinit; the last one replaces
+     sys-apps/baselayout.
+  6. Edit /etc/portage/package.unmask and add sys-apps/systemd-sysv-utils to
      it:
      /etc/portage/package.unmask
 
        =sys-apps/systemd-sysv-utils-37
-
-  6. If necessary, add sys-apps/kmod to /etc/portage/package.keywords, and
-     unmask sys-apps/kmod:
-     /etc/portage/package.keywords
-
-       =sys-apps/kmod-6 ~amd64
-
-
-     /etc/portage/package.unmask
-
-       =sys-apps/kmod-6
 
   7. Uninstall sys-apps/openrc, sys-apps/baselayout and sys-apps/sysvinit:
 
        # emerge --unmerge --verbose sys-apps/openrc sys-apps/baselayout sys-
        apps/sysvinit
 
-  8. See if you can upgrade the world:
+  8. See if you can upgrade the @world set:
 
-       # emerge --newuse --deep --update --verbose --pretend world
+       # emerge --newuse --deep --update --verbose --pretend @world
 
      If the emerge is feasible, go for it:
 
-       # emerge --newuse --deep --update --verbose world
+       # emerge --newuse --deep --update --verbose @world
 
-     If you have to keyword and unmask packages, do it and try again.
+     If you have to keyword (possible) and unmask (it should not be necessary)
+     packages, do it and try again.
      If in the pretended emerge, sys-apps/openrc, sys-apps/baselayout or sys-
      apps/sysvinit try to get installed again, it means that you have a package
      installed that needs them, and for which there is no alternative in this
@@ -129,7 +136,7 @@ Instructions
 OpenRC init scripts
 
 Please note that the instructions from above only remove the package sys-apps/
-openrc: they do nothing to prevent arbitrary packages to install init scripts
+openrc: They do nothing to prevent arbitrary packages to install init scripts
 on /etc/init.d. If you want to avoid the installation of init scripts on /etc/
 init.d, please edit /etc/make.conf with an appropriate INSTALL_MASK variable.
 
@@ -142,10 +149,10 @@ init.d, please edit /etc/make.conf with an appropriate INSTALL_MASK variable.
                      /etc/runlevels"
 
      In time, those directories will be empty. If you feel adventurous, you can
-     delete them: they should not matter if you use systemd.
+     delete them: They should not matter if you use systemd.
 
 This is the same for users of OpenRC who don't want to have installed systemd
-service files on /usr/lib/systemd: they need to set up an appropriate
+service files on /usr/lib/systemd: They need to set up an appropriate
 INSTALL_MASK variable in /etc/make.conf.
 
 Getting cold feet
@@ -154,7 +161,7 @@ If you want to get back to the normal portage configuration, just uninstall
 every package from the overlay, delete the overlay and restore your backup from
 step 1 (you did a backup, right?). You then do
 
-  # emerge --newuse --deep --update --verbose world
+  # emerge --newuse --deep --update --verbose @world
 
 and, in theory, everything should get back to normal.
 
@@ -223,23 +230,17 @@ a diff to the corresponding ebuilds in the portage tree.
     necessary to build the man pages.
     Bug #405703 (https://bugs.gentoo.org/show_bug.cgi?id=405703).
 
-* sys-apps/udev:
+* sys-process/audit:
 
-  o Do not depend on sys-apps/baselayout:
-    No bug filled until sys-apps/systemd-baselayout is good enough as to ask
-    for its inclusion in the portage tree.
-  o Do not depend on sys-fs/udev-init-scripts:
-    The package sys-fs/udev-init-scripts contains init scripts, a udev script
-    to call the init scripts, and a rule file to run the udev script that calls
-    the init scripts. All of this is redundant with systemd. There is also a
-    simple 40-gentoo.rules rule file: This file belongs in the udev package.
-    Bug #408379 (https://bugs.gentoo.org/show_bug.cgi?id=408379).
+  o Use the systemd eclass.
+    No bug reported until audit upstream includes the service file by default.
 
 * sys-kernel/dracut:
 
   o Depend on new package sys-apps/systemd-baselayout instead of sys-apps/
     baselayout:
-    Same as above.
+    No bug filled until sys-apps/systemd-baselayout is good enough to being
+    considered for inclusion in the tree.
   o Depend on sys-apps/systemd-sysv-utils instead of sys-apps/sysvinit:
     No bug filled until bug #399615 (https://bugs.gentoo.org/
     show_bug.cgi?id=399615) gets fixed and sys-apps/systemd-sysv-utils gets
@@ -258,4 +259,7 @@ New packages:
 * sys-apps/systemd-baselayout:
   Add systemd base configuration files:
   http://0pointer.de/blog/projects/the-new-configuration-files.html.
+  Right now this is a replacement for sys-apps/baselayout; however, if sys-
+  apps/baselayout drops the dependency on sys-apps/openrc, then we can make
+  sys-apps/systemd-baselayout parallel-installable with it.
 
