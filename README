@@ -3,7 +3,10 @@
 A systemd-only Gentoo system
 
 Homepage: http://xochitl.matem.unam.mx/~canek/gentoo-systemd-only/index.html
-Git repository: git clone git://github.com/canek-pelaez/gentoo-systemd-only.git
+Git repository: git://github.com/canek-pelaez/gentoo-systemd-only.git
+
+  # git clone git://github.com/canek-pelaez/gentoo-systemd-only.git
+
 
 Introduction
 
@@ -20,7 +23,7 @@ OpenRC, so that users will be able to test it first and get back to the default
 setup if something went wrong, or if the user didn't liked systemd.
 However, it is not possible to install systemd as the only init system in a
 Gentoo machine right now: the package sys-apps/baselayout is included in the
-@system set, and baselayout depends on openrc, so every single Gentoo
+@system set, and it depends on sys-apps/openrc, so every single Gentoo
 installation includes both packages, unless the user explicitly configures her
 system to avoid the installation of said packages.
 This overlay is an experiment to see how difficult it is to remove openrc from
@@ -40,18 +43,16 @@ Instructions
 
   1. Before anything, BACKUP YOUR SYSTEM AND YOUR PORTAGE CONFIGURATION. Make a
      backup of:
-
-          /var/lib/portage/world
-          /etc/portage
-          /etc/make.conf
-          /etc/runlevels
-          /etc/init.d
-          /etc/conf.d
-
+     /var/lib/portage/world
+     /etc/make.conf
+     /etc/portage
+     /etc/runlevels
+     /etc/init.d
+     /etc/conf.d
      WARNING: IF YOU FAIL TO FOLLOW THESE STEPS PROPERLY, YOU MAY RENDER YOUR
      SYSTEM UNUSABLE. EVEN IF YOU FOLLOW THESE STEPS PROPERLY, YOU MAY RENDER
      YOUR SYSTEM UNUSABLE. MAKE SURE YOU KNOW WHAT YOU ARE DOING. I TAKE NO
-     RESPONSABILITY IF THIS OVERLAY EATS YOUR SYSTEM AND THEN RUNS AWAY WITH
+     RESPONSIBILITY IF THIS OVERLAY EATS YOUR SYSTEM AND THEN RUNS AWAY WITH
      ALL YOUR VALUABLES.
      That being said: If you are already using systemd, the removal of sys-
      apps/openrc should not affect your system; the removal of sys-apps/
@@ -61,51 +62,56 @@ Instructions
      systemd-baselayout.
   2. Add the directory with the gentoo-systemd-only overlay to the
      PORTDIR_OVERLAY variable in /etc/make.conf:
+     /etc/make.conf
 
-          PORTDIR_OVERLAY="/path/to/gentoo-systemd-only"
+       PORTDIR_OVERLAY="/path/to/gentoo-systemd-only"
 
   3. Edit /etc/portage/profile/packages (create it if it doesn't exists) and
      add the following lines:
+     /etc/portage/profile/packages
 
-          -*>=sys-apps/baselayout-2
-          *>=sys-apps/systemd-baselayout-2
+       -*>=sys-apps/baselayout-2
+       *>=sys-apps/systemd-baselayout-2
 
      The first line removes baselayout from the @system set, the second one
      adds sys-apps/systemd-baselayout to it.
   4. Edit /etc/portage/package.keywords and add sys-apps/sysvinit-tools, sys-
      apps/systemd-baselayout, and sys-apps/systemd-sysv-utils:
+     /etc/portage/package.keywords
 
-          =sys-apps/sysvinit-tools-2.88-r2 ~amd64
-          =sys-apps/systemd-baselayout-2.0.3 ~amd64
-          =sys-apps/systemd-sysv-utils-37 ~amd64
+       =sys-apps/sysvinit-tools-2.88-r2 ~amd64
+       =sys-apps/systemd-baselayout-2.0.3 ~amd64
+       =sys-apps/systemd-sysv-utils-37 ~amd64
 
   5. Edit /etc/portage/package.unmask and add sys-apps/systemd-sysv-utils to
      it:
+     /etc/portage/package.unmask
 
-          =sys-apps/kmod-6
-          =sys-apps/systemd-sysv-utils-37
+       =sys-apps/systemd-sysv-utils-37
 
   6. If necessary, add sys-apps/kmod to /etc/portage/package.keywords, and
      unmask sys-apps/kmod:
+     /etc/portage/package.keywords
 
-          /etc/portage/package.keywords:
-          =sys-apps/kmod-6 ~amd64
+       =sys-apps/kmod-6 ~amd64
 
-          /etc/portage/package.unmask:
-          =sys-apps/kmod-6
+
+     /etc/portage/package.unmask
+
+       =sys-apps/kmod-6
 
   7. Uninstall sys-apps/openrc, sys-apps/baselayout and sys-apps/sysvinit:
 
-          emerge --unmerge --verbose sys-apps/openrc sys-apps/baselayout \
-          sys-apps/sysvinit
+       # emerge --unmerge --verbose sys-apps/openrc sys-apps/baselayout sys-
+       apps/sysvinit
 
   8. See if you can upgrade the world:
 
-          emerge --newuse --deep --update --verbose --pretend world
+       # emerge --newuse --deep --update --verbose --pretend world
 
      If the emerge is feasible, go for it:
 
-          emerge --newuse --deep --update --verbose world
+       # emerge --newuse --deep --update --verbose world
 
      If you have to keyword and unmask packages, do it and try again.
      If in the pretended emerge, sys-apps/openrc, sys-apps/baselayout or sys-
@@ -129,10 +135,11 @@ init.d, please edit /etc/make.conf with an appropriate INSTALL_MASK variable.
 
   1. (Optional) Add the following directories to INSTALL_MASK in /etc/
      make.conf:
+     /etc/make.conf
 
-          /etc/init.d
-          /etc/conf.d
-          /etc/runlevels
+       INSTALL_MASK="/etc/init.d
+                     /etc/conf.d
+                     /etc/runlevels"
 
      In time, those directories will be empty. If you feel adventurous, you can
      delete them: they should not matter if you use systemd.
@@ -147,7 +154,7 @@ If you want to get back to the normal portage configuration, just uninstall
 every package from the overlay, delete the overlay and restore your backup from
 step 1 (you did a backup, right?). You then do
 
-     emerge --newuse --deep --update --verbose world
+  # emerge --newuse --deep --update --verbose world
 
 and, in theory, everything should get back to normal.
 
