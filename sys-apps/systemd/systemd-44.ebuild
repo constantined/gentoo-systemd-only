@@ -69,6 +69,9 @@ src_prepare() {
 	# Fix hardcoded path in .vala.
 	sed -i -e 's:/lib/systemd:/usr/lib/systemd:g' src/*.vala || die
 
+	# Fix logind unclean closed sessions
+	epatch "${FILESDIR}/systemd-logind-close-fifo-before-ending-sessions-cleanly.patch"
+
 	autotools-utils_src_prepare
 }
 
