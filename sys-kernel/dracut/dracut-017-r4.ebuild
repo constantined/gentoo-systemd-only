@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-kernel/dracut/dracut-017-r1.ebuild,v 1.2 2012/03/05 07:29:05 aidecoe Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-kernel/dracut/dracut-017-r3.ebuild,v 1.1 2012/03/27 16:00:43 aidecoe Exp $
 
 EAPI=4
 
@@ -152,6 +152,10 @@ src_prepare() {
 	epatch "${FILESDIR}/${P}-usrmount-newroot-etc-check.patch"
 	epatch "${FILESDIR}/${P}-convertfs-fix-check-for-usr-bin.patch"
 	epatch "${FILESDIR}/${P}-crypt-simplify-rd.luks.uuid-testing.patch"
+	epatch "${FILESDIR}/${P}-inst_symlink-parent-dir.patch"
+	epatch "${FILESDIR}/${P}-tmpdir-option.patch"
+	epatch "${FILESDIR}/${P}-fstab-sys-no-check-for-dev.patch"
+	epatch "${FILESDIR}/${P}-fstab-sys-remove-bashism.patch"
 }
 
 src_compile() {
