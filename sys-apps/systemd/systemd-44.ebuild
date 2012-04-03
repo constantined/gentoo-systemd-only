@@ -33,7 +33,7 @@ RDEPEND=">=sys-apps/dbus-1.4.10
 	acl? ( sys-apps/acl )
 	audit? ( >=sys-process/audit-2 )
 	cryptsetup? ( sys-fs/cryptsetup )
-	doc? ( app-text/docbook2X )
+	doc? ( app-text/docbook-xsl-stylesheets )
 	gtk? (
 		dev-libs/dbus-glib
 		>=dev-libs/glib-2.26
