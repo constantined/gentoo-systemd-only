@@ -53,6 +53,8 @@ PATCHES=(
 	"${FILESDIR}"/0001-util-never-follow-symlinks-in-rm_rf_children.patch
 	# bug #410973: fails to build on ARM due to PAGE_SIZE not being defined
 	"${FILESDIR}"/0002-journal-PAGE_SIZE-is-not-known-on-ppc-and-other-arch.patch
+	# Fix logind unclean closed sessions
+	"${FILESDIR}/systemd-logind-close-fifo-before-ending-sessions-cleanly.patch"
 )
 
 pkg_setup() {
@@ -63,9 +65,6 @@ pkg_setup() {
 src_prepare() {
 	# systemd-analyze is for python2.7 only nowadays.
 	sed -i -e '1s/python/&2.7/' src/systemd-analyze
-
-	# Fix logind unclean closed sessions
-	epatch "${FILESDIR}/systemd-logind-close-fifo-before-ending-sessions-cleanly.patch"
 
 	autotools-utils_src_prepare
 }
