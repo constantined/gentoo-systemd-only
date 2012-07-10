@@ -64,6 +64,9 @@ src_prepare() {
 	# systemd-analyze is for python2.7 only nowadays.
 	sed -i -e '1s/python/&2.7/' src/systemd-analyze
 
+	# Fix logind unclean closed sessions
+	epatch "${FILESDIR}/systemd-logind-close-fifo-before-ending-sessions-cleanly.patch"
+
 	autotools-utils_src_prepare
 }
 
