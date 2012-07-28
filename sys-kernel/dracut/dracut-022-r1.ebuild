@@ -1,10 +1,10 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-kernel/dracut/dracut-019.ebuild,v 1.1 2012/06/09 13:16:12 aidecoe Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-kernel/dracut/dracut-022.ebuild,v 1.6 2012/07/27 20:06:32 aidecoe Exp $
 
 EAPI=4
 
-inherit eutils linux-info
+inherit eutils linux-info toolchain-funcs
 
 add_req_use_for() {
 	local dep="$1"; shift
@@ -55,20 +55,20 @@ NETWORK_MODULES="
 add_req_use_for device-mapper ${DM_MODULES}
 add_req_use_for net ${NETWORK_MODULES}
 IUSE_DRACUT_MODULES="${COMMON_MODULES} ${DM_MODULES} ${NETWORK_MODULES}"
-IUSE="debug device-mapper net selinux ${IUSE_DRACUT_MODULES}"
+IUSE="debug device-mapper optimization net selinux ${IUSE_DRACUT_MODULES}"
 
 RESTRICT="test"
 
 RDEPEND="
+	app-arch/cpio
 	>=app-shells/bash-4.0
 	>=app-shells/dash-0.5.4.11
+	|| ( >=sys-apps/module-init-tools-3.8 >sys-apps/kmod-5[tools] )
 	>=sys-apps/systemd-baselayout-10.0
 	>=sys-apps/systemd-sysv-utils-37
 	>=sys-apps/sysvinit-tools-2.88-r3
 	>=sys-apps/util-linux-2.20
-	>=sys-fs/udev-164
-	app-arch/cpio
-	|| ( >=sys-apps/module-init-tools-3.8 >sys-apps/kmod-5[tools] )
+	>=sys-fs/udev-166
 
 	debug? ( dev-util/strace )
 	device-mapper? ( || ( sys-fs/device-mapper >=sys-fs/lvm2-2.02.33 ) )
@@ -92,7 +92,12 @@ RDEPEND="
 	dracut_modules_ssh-client? ( dev-libs/openssl )
 	dracut_modules_syslog? ( || ( app-admin/syslog-ng app-admin/rsyslog ) )
 	"
-DEPEND=""
+DEPEND="
+	app-text/asciidoc
+	>=dev-libs/libxslt-1.1.26
+	app-text/docbook-xml-dtd:4.5
+	>=app-text/docbook-xsl-stylesheets-1.75.2
+	"
 
 #
 # Helper functions
@@ -131,43 +136,48 @@ rm_module() {
 	done
 }
 
-# Displays Gentoo Base System major release number
-base_sys_maj_ver() {
-	local line
-
-	read line < /etc/gentoo-release
-	line=${line##* }
-	echo "${line%%.*}"
-}
-
 #
 # ebuild functions
 #
 
 src_prepare() {
-	epatch "${FILESDIR}/${P}-multipath-udev-rules.patch"
+	epatch "${FILESDIR}/${PV}-0001-qemu-module-setup.sh-provide-alternati.patch"
+	epatch "${FILESDIR}/${PV}-0002-Makefile-use-implicit-rules-for-instal.patch"
+	epatch "${FILESDIR}/${PV}-0003-kernel-modules-module-setup.sh-just-op.patch"
+	epatch "${FILESDIR}/${PV}-0004-90multipath-added-kpartx.rules-multipa.patch"
+	epatch "${FILESDIR}/${PV}-0005-gentoo.conf-set-udevdir.patch"
+	epatch "${FILESDIR}/${PV}-0006-Config-file-for-systemd-on-Gentoo.patch"
+	epatch "${FILESDIR}/${PV}-0007-Remove-obsolete-gentoo-conf-file.patch"
+	epatch "${FILESDIR}/${PV}-0008-95rootfs-block-fix-left-fsck-rel.-chec.patch"
+	epatch "${FILESDIR}/${PV}-0009-98usrmount-use-rw-and-ro-options-inste.patch"
+	epatch "${FILESDIR}/${PV}-0010-98usrmount-print-mount-options.patch"
+	epatch "${FILESDIR}/${PV}-0011-dracut-lib-new-functions-listlist-and-.patch"
+	epatch "${FILESDIR}/${PV}-0012-apply-ro-and-rw-options-from-cmdline-t.patch"
+	epatch "${FILESDIR}/${PV}-0013-ro_mnt-option-at-build-time-to-force-r.patch"
+	epatch "${FILESDIR}/${PV}-0014-parse-root-opts-first-check-for-ro-lat.patch"
+	epatch "${FILESDIR}/${PV}-0015-gentoo.conf-enable-ro_mnt.patch"
+	einfo "Removing ${S}/install/hashmap.o ..."
+	rm "${S}/install/hashmap.o" || die
 }
 
 src_compile() {
-	return
+	if use optimization; then
+		ewarn "Enabling experimental optimization!"
+		tc-export CC
+		emake prefix=/usr sysconfdir=/etc DESTDIR="${D}" doc \
+			install/dracut-install
+	fi
 }
 
 src_install() {
-	emake prefix=/usr sysconfdir=/etc DESTDIR="${D}" install
-
-	local gen2conf
+	emake prefix=/usr libdir="/usr/$(get_libdir)" sysconfdir=/etc \
+		DESTDIR="${D}" install
 
 	dodir /var/lib/dracut/overlay
 	dodoc HACKING TODO AUTHORS NEWS README*
 
-	case "$(base_sys_maj_ver)" in
-		1) gen2conf=gentoo.conf ;;
-		2) gen2conf=gentoo-openrc.conf ;;
-		*) die "Expected ver. 1 or 2 of Gentoo Base System (/etc/gentoo-release)."
-	esac
-
 	insinto /etc/dracut.conf.d
-	newins dracut.conf.d/${gen2conf}.example ${gen2conf}
+	newins dracut.conf.d/gentoo.conf.example gentoo.conf
 
 	insinto /etc/logrotate.d
 	newins dracut.logrotate dracut
@@ -178,7 +188,7 @@ src_install() {
 	# Modules
 	#
 	local module
-	modules_dir="${D}/usr/lib/dracut/modules.d"
+	modules_dir="${D}/usr/$(get_libdir)/dracut/modules.d"
 
 	# Remove modules not enabled by USE flags
 	for module in ${IUSE_DRACUT_MODULES} ; do
@@ -209,11 +219,11 @@ src_install() {
 
 pkg_postinst() {
 	if linux-info_get_any_version && linux_config_src_exists; then
-		echo
+		ewarn ""
 		ewarn "If the following test report contains a missing kernel"
 		ewarn "configuration option, you should reconfigure and rebuild your"
 		ewarn "kernel before booting image generated with this Dracut version."
-		echo
+		ewarn ""
 
 		local CONFIG_CHECK="~BLK_DEV_INITRD ~DEVTMPFS ~MODULES"
 
@@ -236,7 +246,7 @@ pkg_postinst() {
 		check_extra_config
 		echo
 	else
-		echo
+		ewarn ""
 		ewarn "Your kernel configuration couldn't be checked.  Do you have"
 		ewarn "/usr/src/linux/.config file there?  Please check manually if"
 		ewarn "following options are enabled:"
@@ -244,19 +254,12 @@ pkg_postinst() {
 		ewarn "  CONFIG_BLK_DEV_INITRD"
 		ewarn "  CONFIG_DEVTMPFS"
 		ewarn "  CONFIG_MODULES"
-		echo
+		ewarn ""
 	fi
 
-	elog 'To generate the initramfs:'
-	elog '    # mount /boot (if necessary)'
-	elog '    # dracut "" <kernel-version>'
-	elog ''
-	elog 'For command line documentation see dracut.kernel(7).'
-	elog ''
-	elog 'Simple example to select root and resume partition:'
-	elog '    root=/dev/sda1 resume=/dev/sda2'
-	elog ''
-	elog 'To include only dracut modules and kernel drivers for this system,'
-	elog 'use the "-H" option.  Some modules need to be explicitly added with'
-	elog '"-a" option even if required tools are installed.'
+	if has_version virtual/pkgconfig; then
+		elog ""
+		elog "virtual/pkgconfig is no longer needed by dracut."
+		elog ""
+	fi
 }
