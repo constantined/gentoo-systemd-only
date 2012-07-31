@@ -156,6 +156,7 @@ src_prepare() {
 	epatch "${FILESDIR}/${PV}-0013-ro_mnt-option-at-build-time-to-force-r.patch"
 	epatch "${FILESDIR}/${PV}-0014-parse-root-opts-first-check-for-ro-lat.patch"
 	epatch "${FILESDIR}/${PV}-0015-gentoo.conf-enable-ro_mnt.patch"
+	epatch "${FILESDIR}/${PV}-0016-dracut.sh-test-if-we-can-lazy-resolve-.patch"
 	einfo "Removing ${S}/install/hashmap.o ..."
 	rm "${S}/install/hashmap.o" || die
 }
