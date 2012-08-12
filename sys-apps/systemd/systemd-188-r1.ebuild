@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-44-r1.ebuild,v 1.2 2012/05/24 02:36:59 vapier Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-188.ebuild,v 1.2 2012/08/11 09:32:16 mgorny Exp $
 
 EAPI=4
 
@@ -10,37 +10,37 @@ DESCRIPTION="System and service manager for Linux"
 HOMEPAGE="http://www.freedesktop.org/wiki/Software/systemd"
 SRC_URI="http://www.freedesktop.org/software/systemd/${P}.tar.xz"
 
-LICENSE="GPL-2"
+LICENSE="GPL-2 LGPL-2.1 MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~x86"
-IUSE="acl audit cryptsetup lzma pam plymouth selinux tcpd"
+IUSE="acl audit cryptsetup lzma pam selinux tcpd"
 
 # We need to depend on sysvinit for sulogin which is used in the rescue
 # mode. Bug #399615.
 
-# A little higher than upstream requires
-# but I had real trouble with 2.6.37 and systemd.
-MINKV="2.6.38"
+MINKV="2.6.39"
 
-# dbus version because of systemd units
-# sysvinit for sulogin
-RDEPEND=">=sys-apps/dbus-1.4.10
+COMMON_DEPEND=">=sys-apps/dbus-1.4.10
 	>=sys-apps/kmod-5
+	>=sys-apps/util-linux-2.20
+	=sys-fs/udev-187-r3
 	>=sys-apps/systemd-sysv-utils-37
 	sys-apps/sysvinit-tools
-	>=sys-apps/util-linux-2.19
-	>=sys-fs/udev-172
 	sys-libs/libcap
 	acl? ( sys-apps/acl )
 	audit? ( >=sys-process/audit-2 )
-	cryptsetup? ( sys-fs/cryptsetup )
+	cryptsetup? ( >=sys-fs/cryptsetup-1.4.2 )
 	lzma? ( app-arch/xz-utils )
 	pam? ( virtual/pam )
-	plymouth? ( sys-boot/plymouth )
 	selinux? ( sys-libs/libselinux )
 	tcpd? ( sys-apps/tcp-wrappers )"
 
-DEPEND="${RDEPEND}
+# sysvinit for sulogin
+RDEPEND="${COMMON_DEPEND}
+	sys-apps/hwids
+	!<sys-libs/glibc-2.10
+	!<sys-fs/udev-187-r3"
+DEPEND="${COMMON_RDEPEND}
 	app-arch/xz-utils
 	app-text/docbook-xsl-stylesheets
 	dev-libs/libxslt
@@ -48,14 +48,7 @@ DEPEND="${RDEPEND}
 	dev-util/intltool
 	>=sys-kernel/linux-headers-${MINKV}"
 
-PATCHES=(
-	# bug #408879: Session Logout File Deletion Weakness (CVE-2012-1174)
-	"${FILESDIR}"/0001-util-never-follow-symlinks-in-rm_rf_children.patch
-	# bug #410973: fails to build on ARM due to PAGE_SIZE not being defined
-	"${FILESDIR}"/0002-journal-PAGE_SIZE-is-not-known-on-ppc-and-other-arch.patch
-	# Fix logind unclean closed sessions
-	"${FILESDIR}/systemd-logind-close-fifo-before-ending-sessions-cleanly.patch"
-)
+AUTOTOOLS_IN_SOURCE_BUILD=1
 
 pkg_setup() {
 	enewgroup lock # used by var-lock.mount
@@ -64,32 +57,46 @@ pkg_setup() {
 
 src_prepare() {
 	# systemd-analyze is for python2.7 only nowadays.
-	sed -i -e '1s/python/&2.7/' src/systemd-analyze
+	sed -i -e '1s/python/&2.7/' src/analyze/systemd-analyze
+
+	# link against external udev.
+	sed -i -e 's:libudev\.la:-ludev:' Makefile.am
+
+	local PATCHES=(
+		"${FILESDIR}"/0001-Disable-udev-targets.patch
+	)
 
 	autotools-utils_src_prepare
+
+	# XXX: support it within eclass
+	eautomake
 }
 
 src_configure() {
 	local myeconfargs=(
+		--localstatedir=/var
 		--with-distro=gentoo
 		# install everything to /usr
 		--with-rootprefix=/usr
 		--with-rootlibdir=/usr/$(get_libdir)
 		# but pam modules have to lie in /lib*
 		--with-pamlibdir=/$(get_libdir)/security
-		--localstatedir=/var
+		# this avoids dep on pciutils & usbutils
+		--with-pci-ids-path=/usr/share/misc/pci.ids
+		--with-usb-ids-path=/usr/share/misc/usb.ids
 		# make sure we get /bin:/sbin in $PATH
 		--enable-split-usr
+		# udev parts
+		--disable-introspection
+		--disable-gtk-doc
+		--disable-gudev
 		$(use_enable acl)
 		$(use_enable audit)
 		$(use_enable cryptsetup libcryptsetup)
 		$(use_enable lzma xz)
 		$(use_enable pam)
-		$(use_enable plymouth)
 		$(use_enable selinux)
 		$(use_enable tcpd tcpwrap)
-		# now in sys-apps/systemd-ui
-		--disable-gtk
 	)
 
 	autotools-utils_src_configure
@@ -113,22 +120,20 @@ src_install() {
 	rm "${D}"/usr/share/man/man8/{halt,poweroff,reboot,runlevel,shutdown,telinit}.8 \
 		|| die
 	rm "${D}"/usr/share/man/man1/init.1 || die
-	# collision with -ui
-	rm "${D}"/usr/share/man/man1/systemadm.1 || die
 
 	# Create /run/lock as required by new baselay/OpenRC compat.
 	insinto /usr/lib/tmpfiles.d
 	doins "${FILESDIR}"/gentoo-run.conf
 
-	# Migration helpers.
-	exeinto /usr/libexec/systemd
-	doexe "${FILESDIR}"/update-etc-systemd-symlinks.sh
-	systemd_dounit "${FILESDIR}"/update-etc-systemd-symlinks.{service,path}
-	systemd_enable_service sysinit.target update-etc-systemd-symlinks.path
+	# Check whether we won't break user's system.
+	[[ -x "${D}"/bin/systemd ]] || die '/bin/systemd symlink broken, aborting.'
+	[[ -x "${D}"/usr/bin/systemd ]] || die '/usr/bin/systemd symlink broken, aborting.'
 }
 
 pkg_preinst() {
-	local CONFIG_CHECK="~AUTOFS4_FS ~CGROUPS ~DEVTMPFS ~FANOTIFY ~IPV6"
+	local CONFIG_CHECK="~AUTOFS4_FS ~BLK_DEV_BSG ~CGROUPS ~DEVTMPFS
+		~FANOTIFY ~HOTPLUG ~INOTIFY_USER ~IPV6 ~NET ~PROC_FS ~SIGNALFD
+		~SYSFS ~!IDE ~!SYSFS_DEPRECATED ~!SYSFS_DEPRECATED_V2"
 	kernel_is -ge ${MINKV//./ } || ewarn "Kernel version at least ${MINKV} required"
 	check_extra_config
 }
@@ -157,12 +162,6 @@ pkg_postinst() {
 		ewarn
 	fi
 
-	elog "You may need to perform some additional configuration for some programs"
-	elog "to work, see the systemd manpages for loading modules and handling tmpfiles:"
-	elog "	$ man modules-load.d"
-	elog "	$ man tmpfiles.d"
-	elog
-
 	elog "To get additional features, a number of optional runtime dependencies may"
 	elog "be installed:"
 	optfeature 'for systemd-analyze' \
@@ -178,15 +177,4 @@ pkg_postinst() {
 	ewarn "responsibility. Please remember than you can pass:"
 	ewarn "	init=/sbin/init"
 	ewarn "to your kernel to boot using sysvinit / OpenRC."
-
-	# Don't run it if we're outta /
-	if [[ ! ${ROOT%/} ]]; then
-		# Update symlinks to moved units.
-		sh "${FILESDIR}"/update-etc-systemd-symlinks.sh
-
-		# Try to start migration unit.
-		ebegin "Trying to start migration helper path monitoring."
-		systemctl --system start update-etc-systemd-symlinks.path 2>/dev/null
-		eend ${?}
-	fi
 }
