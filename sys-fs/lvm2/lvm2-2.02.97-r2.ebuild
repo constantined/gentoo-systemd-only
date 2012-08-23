@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-fs/lvm2/lvm2-2.02.95-r3.ebuild,v 1.1 2012/07/05 08:55:13 ssuominen Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-fs/lvm2/lvm2-2.02.97.ebuild,v 1.1 2012/08/12 21:11:49 robbat2 Exp $
 
 EAPI=3
 inherit eutils multilib toolchain-funcs autotools linux-info
@@ -95,10 +95,12 @@ src_prepare() {
 	epatch "${FILESDIR}"/${PN}-2.02.88-respect-cc.patch
 
 	# Upstream bug of LVM path
-	epatch "${FILESDIR}"/${PN}-2.02.95-lvmpath.patch
+	# Merged upstream
+	#epatch "${FILESDIR}"/${PN}-2.02.95-lvmpath.patch
 
 	# Upstream patch for http://bugs.gentoo.org/424810
-	epatch "${FILESDIR}"/${PN}-2.02.95-udev185.patch
+	# Merged upstream
+	#epatch "${FILESDIR}"/${PN}-2.02.95-udev185.patch
 
 	eautoreconf
 }
@@ -167,6 +169,9 @@ src_configure() {
 		myconf="${myconf} --with-clvmd=none --with-cluster=none"
 	fi
 
+	local udevdir="${EPREFIX}/lib/udev/rules.d"
+	use udev && udevdir="${EPREFIX}$($(tc-getPKG_CONFIG) --variable=udevdir udev)/rules.d"
+
 	econf \
 		$(use_enable readline) \
 		$(use_enable selinux) \
@@ -181,9 +186,9 @@ src_configure() {
 		--with-dmeventd-path=/sbin/dmeventd \
 		$(use_enable udev udev_rules) \
 		$(use_enable udev udev_sync) \
-		$(use_with udev udevdir "${EPREFIX}/lib/udev/rules.d/") \
+		$(use_with udev udevdir "${udevdir}") \
 		${myconf} \
-		CLDFLAGS="${LDFLAGS}" || die
+		CLDFLAGS="${LDFLAGS}"
 }
 
 src_compile() {
