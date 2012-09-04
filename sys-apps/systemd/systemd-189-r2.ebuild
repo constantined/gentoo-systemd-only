@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-188.ebuild,v 1.2 2012/08/11 09:32:16 mgorny Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-189-r1.ebuild,v 1.1 2012/09/03 21:50:59 mgorny Exp $
 
 EAPI=4
 
@@ -13,7 +13,7 @@ SRC_URI="http://www.freedesktop.org/software/systemd/${P}.tar.xz"
 LICENSE="GPL-2 LGPL-2.1 MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~x86"
-IUSE="acl audit cryptsetup lzma pam selinux tcpd"
+IUSE="acl audit cryptsetup gcrypt lzma pam qrcode selinux tcpd"
 
 # We need to depend on sysvinit for sulogin which is used in the rescue
 # mode. Bug #399615.
@@ -23,24 +23,26 @@ MINKV="2.6.39"
 COMMON_DEPEND=">=sys-apps/dbus-1.4.10
 	>=sys-apps/kmod-5
 	>=sys-apps/util-linux-2.20
-	=sys-fs/udev-187-r3
-	>=sys-apps/systemd-sysv-utils-37
-	sys-apps/sysvinit-tools
+	~sys-fs/udev-189
 	sys-libs/libcap
 	acl? ( sys-apps/acl )
 	audit? ( >=sys-process/audit-2 )
 	cryptsetup? ( >=sys-fs/cryptsetup-1.4.2 )
+	gcrypt? ( >=dev-libs/libgcrypt-1.4.5 )
 	lzma? ( app-arch/xz-utils )
 	pam? ( virtual/pam )
+	qrcode? ( media-gfx/qrencode )
 	selinux? ( sys-libs/libselinux )
 	tcpd? ( sys-apps/tcp-wrappers )"
 
 # sysvinit for sulogin
 RDEPEND="${COMMON_DEPEND}
 	sys-apps/hwids
+	>=sys-apps/systemd-sysv-utils-37
+	sys-apps/sysvinit-tools
 	!<sys-libs/glibc-2.10
-	!<sys-fs/udev-187-r3"
-DEPEND="${COMMON_RDEPEND}
+	!~sys-fs/udev-187"
+DEPEND="${COMMON_DEPEND}
 	app-arch/xz-utils
 	app-text/docbook-xsl-stylesheets
 	dev-libs/libxslt
@@ -63,7 +65,9 @@ src_prepare() {
 	sed -i -e 's:libudev\.la:-ludev:' Makefile.am
 
 	local PATCHES=(
-		"${FILESDIR}"/0001-Disable-udev-targets.patch
+		"${FILESDIR}"/0001-Disable-udev-targets-for-udev-189.patch
+		"${FILESDIR}"/0002-journald-add-missing-includes.patch
+		"${FILESDIR}"/0003-journal-add-HAVE_XZ-check-to-avoid-build-failure.patch
 	)
 
 	autotools-utils_src_prepare
@@ -93,8 +97,10 @@ src_configure() {
 		$(use_enable acl)
 		$(use_enable audit)
 		$(use_enable cryptsetup libcryptsetup)
+		$(use_enable gcrypt)
 		$(use_enable lzma xz)
 		$(use_enable pam)
+		$(use_enable qrcode qrencode)
 		$(use_enable selinux)
 		$(use_enable tcpd tcpwrap)
 	)
@@ -122,8 +128,10 @@ src_install() {
 	rm "${D}"/usr/share/man/man1/init.1 || die
 
 	# Create /run/lock as required by new baselay/OpenRC compat.
-	insinto /usr/lib/tmpfiles.d
-	doins "${FILESDIR}"/gentoo-run.conf
+	systemd_dotmpfilesd "${FILESDIR}"/gentoo-run.conf
+
+	# Add mount-rules for /var/lock and /var/run, bug #433607
+	systemd_dounit "${FILESDIR}"/var-{lock,run}.mount
 
 	# Check whether we won't break user's system.
 	[[ -x "${D}"/bin/systemd ]] || die '/bin/systemd symlink broken, aborting.'
