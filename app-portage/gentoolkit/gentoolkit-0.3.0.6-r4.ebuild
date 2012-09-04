@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/app-portage/gentoolkit/gentoolkit-0.3.0.5.ebuild,v 1.5 2012/04/13 09:15:52 ago Exp $
+# $Header: /var/cvsroot/gentoo-x86/app-portage/gentoolkit/gentoolkit-0.3.0.6-r3.ebuild,v 1.11 2012/08/26 19:01:24 armin76 Exp $
 
 EAPI="3"
 SUPPORT_PYTHON_ABIS="1"
@@ -18,9 +18,7 @@ LICENSE="GPL-2"
 SLOT="0"
 IUSE=""
 
-# Drop the prefix keywords since equery is currently broken on prefix Bug 406495
-#KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~ppc-aix ~x86-fbsd ~x64-freebsd ~hppa-hpux ~ia64-hpux ~x86-interix ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
-KEYWORDS="~alpha amd64 ~arm hppa ~ia64 ~m68k ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc x86"
+KEYWORDS="alpha amd64 arm hppa ia64 m68k ~mips ppc ppc64 s390 sh sparc x86 ~ppc-aix ~amd64-fbsd ~x86-fbsd ~x64-freebsd ~hppa-hpux ~ia64-hpux ~x86-interix ~amd64-linux ~x86-linux ~ppc-macos ~x64-macos ~x86-macos ~m68k-mint ~sparc-solaris ~sparc64-solaris ~x64-solaris ~x86-solaris"
 
 # Note: argparse is provided in python 2.7 and 3.2 (Bug 346005)
 # Note: dev-lang/python dependencies are so emerge will print a blocker if any
@@ -34,13 +32,21 @@ RDEPEND="${DEPEND}
 	dev-python/argparse
 	|| ( >=sys-apps/coreutils-8.15 app-misc/realpath sys-freebsd/freebsd-bin )
 	sys-apps/gawk
-	sys-apps/grep
-	sys-libs/elog-functions"
+	sys-apps/grep"
 
 distutils_src_compile_pre_hook() {
 	echo VERSION="${PVR}" "$(PYTHON)" setup.py set_version
 	VERSION="${PVR}" "$(PYTHON)" setup.py set_version \
 		|| die "setup.py set_version failed"
+}
+
+src_prepare() {
+	epatch "${FILESDIR}/${PV}-eread-413577.patch"
+	epatch "${FILESDIR}/${PV}-eshowkw-414627.patch"
+	epatch "${FILESDIR}/${PV}-gentoolkit-304125.patch"
+	epatch "${FILESDIR}/${PV}-euse-410365.patch"
+	epatch "${FILESDIR}/${PV}-eshowkw-409449.patch"
+	epatch "${FILESDIR}/${PV}-euse-422675.patch"
 }
 
 src_install() {
@@ -64,8 +70,7 @@ src_install() {
 	if use prefix; then
 		elog "The revdep-rebuild command is removed, the preserve-libs"
 		elog "feature of portage will handle issues."
-		rm "${ED}"/usr/bin/revdep-rebuild
-		rm "${ED}"/usr/bin/revdep-rebuild.py
+		rm "${ED}"/usr/bin/revdep-rebuild*
 		rm "${ED}"/usr/share/man/man1/revdep-rebuild.1
 		rm -rf "${ED}"/etc/revdep-rebuild
 		rm -rf "${ED}"/var
@@ -74,7 +79,7 @@ src_install() {
 	# Can distutils handle this?
 	dosym eclean /usr/bin/eclean-dist
 	dosym eclean /usr/bin/eclean-pkg
-
+	
 	sed -i -e \
 	"s:/etc/init.d/functions.sh:/usr/$(get_libdir)/misc/elog-functions.sh:g" \
 	"${D}"/usr/bin/revdep-rebuild
