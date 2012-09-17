@@ -1,5 +1,6 @@
 
 
+
 A systemd-only Gentoo system
 
 Homepage: http://xochitl.matem.unam.mx/~canek/gentoo-systemd-only/index.html
@@ -11,7 +12,7 @@ Git repository: git://github.com/canek-pelaez/gentoo-systemd-only.git
 Introduction
 
 The package sys-apps/systemd was added to the portage tree in June of 2011, and
-since then support for it has only been growing. As of now (March, 2012),
+since then support for it has only been growing. As of now (September, 2012),
 almost any hardware configuration it's able to run Linux with systemd.
 The systemd package is written as a drop-in replacement for SysV init; however,
 Gentoo utilizes OpenRC, a different init system that runs on top of SysV init.
@@ -27,7 +28,7 @@ The package sys-apps/baselayout is included in the @system set, and it depends
 on sys-apps/openrc, so every single Gentoo installation includes both packages,
 unless the user explicitly configures her system to avoid the installation of
 said packages.
-This overlay is an experiment to see how difficult it is to remove openrc from
+This overlay is an experiment to see how difficult it is to remove OpenRC from
 a Gentoo system, so it runs only with systemd. I will try to keep the overlay
 in sync with the portage tree until the listed bugs are fixed and the new
 ebuilds (or similar alternatives) are accepted.
@@ -48,7 +49,6 @@ systemd.
   1. Before anything, BACKUP YOUR SYSTEM AND YOUR PORTAGE CONFIGURATION. Make a
      backup of:
      /var/lib/portage/world
-     /etc/make.conf
      /etc/portage
      /etc/runlevels
      /etc/init.d
@@ -71,13 +71,13 @@ systemd.
        # emerge --oneshot --verbose sys-apps/kmod
 
      You will need to add sys-apps/kmod to /etc/portage/package.keywords:
-     /etc/make.conf
+     /etc/portage/package.keywords
 
        sys-apps/kmod
 
   3. Add the directory with the gentoo-systemd-only overlay to the
-     PORTDIR_OVERLAY variable in /etc/make.conf:
-     /etc/make.conf
+     PORTDIR_OVERLAY variable in /etc/portage/make.conf:
+     /etc/portage/make.conf
 
        PORTDIR_OVERLAY="/path/to/gentoo-systemd-only"
 
@@ -90,12 +90,12 @@ systemd.
 
      The first line removes baselayout from the @system set, the second one
      adds sys-apps/systemd-baselayout to it.
-  5. Edit /etc/portage/package.keywords and add sys-apps/sysvinit-tools, sys-
-     apps/systemd-baselayout, and sys-apps/systemd-sysv-utils:
+  5. Edit /etc/portage/package.keywords and add sys-apps/systemd-baselayout,
+     sys-apps/sysvinit-tools, and and sys-apps/systemd-sysv-utils:
      /etc/portage/package.keywords
 
-       =sys-apps/sysvinit-tools-2.88-r3 ~amd64
        =sys-apps/systemd-sysv-utils-37 ~amd64
+       =sys-apps/sysvinit-tools-2.88-r4 ~amd64
        =sys-apps/systemd-baselayout-10.0 ~amd64
 
      The first two packages replace sys-apps/sysvinit; the last one replaces
@@ -138,11 +138,12 @@ OpenRC init scripts
 Please note that the instructions from above only remove the package sys-apps/
 openrc: They do nothing to prevent arbitrary packages to install init scripts
 on /etc/init.d. If you want to avoid the installation of init scripts on /etc/
-init.d, please edit /etc/make.conf with an appropriate INSTALL_MASK variable.
+init.d, please edit /etc/portage/make.conf with an appropriate INSTALL_MASK
+variable.
 
-  1. (Optional) Add the following directories to INSTALL_MASK in /etc/
+  1. (Optional) Add the following directories to INSTALL_MASK in /etc/portage/
      make.conf:
-     /etc/make.conf
+     /etc/portage/make.conf
 
        INSTALL_MASK="/etc/init.d
                      /etc/conf.d
@@ -153,7 +154,7 @@ init.d, please edit /etc/make.conf with an appropriate INSTALL_MASK variable.
 
 This is the same for users of OpenRC who don't want to have installed systemd
 service files on /usr/lib/systemd: They need to set up an appropriate
-INSTALL_MASK variable in /etc/make.conf.
+INSTALL_MASK variable in /etc/portage/make.conf.
 
 Getting cold feet
 
@@ -178,7 +179,7 @@ scripts on the tree will stop working.
 To workaround this, I'm introducing sys-libs/elog-functions, which provides
 full compatibilty functions for the e* log functions from OpenRC, and I'm
 introducing alternative versions of packages that depend (implicitly) on OpenRC
-so this new versions will depend on sys-libs/elog-functions. Right now that's:
+so this new versions use it. Right now that's:
 
 * app-admin/perl-cleaner
 * app-admin/python-updater
@@ -212,8 +213,7 @@ a diff to the corresponding ebuilds in the portage tree.
   dev-java/java-config-wrapper, sys-devel/binutils-config, sys-devel/gcc-
   config:
 
-  o Depend on sys-libs/elog-functions and source /usr/lib/misc/elog-
-    functions.sh instead of /etc/init.d/functions.sh.
+  o Source /usr/lib/misc/elog-functions.sh instead of /etc/init.d/functions.sh.
     Bug #373219 (https://bugs.gentoo.org/show_bug.cgi?id=373219).
 
 * net-dns/avahi:
@@ -221,14 +221,12 @@ a diff to the corresponding ebuilds in the portage tree.
   o Use the systemd eclass:
     Bug #366173 (https://bugs.gentoo.org/show_bug.cgi?id=366173).
 
-* sys-apps/systemd:
+* sys-fs/lvm2:
 
-  o Depend on new package sys-apps/sysvinit-tools instead of sys-apps/sysvinit,
-    and also depend on sys-apps/systemd-sysv-utils:
-    Bug #399615 (https://bugs.gentoo.org/show_bug.cgi?id=399615).
-  o Introduce "doc" USE flag to conditionally depend on app-text/docbook2X,
-    necessary to build the man pages.
-    Bug #405703 (https://bugs.gentoo.org/show_bug.cgi?id=405703).
+  o Don't depend on sys-apps/baselayout.
+    No bug reported; the LVM2 ebuild is complex enough, and although it really
+    doesn't need sys-apps/baselayout, I think is best to wait until sys-apps/
+    baselayout stops depending on OpenRC.
 
 * sys-process/audit:
 
@@ -254,12 +252,15 @@ New packages:
 
 
 * sys-apps/sysvinit-tools:
-  Split some utilities from sys-apps/sysvinit, in response to bug #399615
-  (https://bugs.gentoo.org/show_bug.cgi?id=399615).
+  Initially in response to bug #399615 (https://bugs.gentoo.org/
+  show_bug.cgi?id=399615), now I keep it here only because dracut uses pidof,
+  which is included here. The moment that binary moves to another package, it
+  goes.
 * sys-apps/systemd-baselayout:
   Add systemd base configuration files:
   http://0pointer.de/blog/projects/the-new-configuration-files.html.
   Right now this is a replacement for sys-apps/baselayout; however, if sys-
   apps/baselayout drops the dependency on sys-apps/openrc, then we can make
-  sys-apps/systemd-baselayout parallel-installable with it.
+  sys-apps/systemd-baselayout parallel-installable with it (or integrate
+  systemd's configuration files into baselayout).
 
