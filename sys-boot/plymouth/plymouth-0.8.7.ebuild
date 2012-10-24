@@ -9,7 +9,7 @@ inherit autotools-utils systemd
 DESCRIPTION="Graphical boot animation (splash) and logger"
 HOMEPAGE="http://cgit.freedesktop.org/plymouth/"
 SRC_URI="
-	http://www.freedesktop.org/software/plymouth/releases/${P}.tar.bz2
+	http://www.freedesktop.org/software/plymouth/releases/${P}.tar.gz
 	http://dev.gentoo.org/~aidecoe/distfiles/${CATEGORY}/${PN}/gentoo-logo.png"
 
 LICENSE="GPL-2"
@@ -60,18 +60,6 @@ src_configure() {
 src_install() {
 	autotools-utils_src_install
 
-	if use static-libs; then
-		mv "${D}/$(get_libdir)"/libply{,-splash-core}.a \
-			"${D}/usr/$(get_libdir)"/ || die 'mv *.a files failed'
-		gen_usr_ldscript libply.so libply-splash-core.so
-	else
-		local la
-		for la in "${D}/usr/$(get_libdir)"/plymouth/{*.la,renderers/*.la}; do
-			einfo "Removing left ${la#${D}}"
-			rm "${la}" || die "rm '${la}'"
-		done
-	fi
-
 	insinto /usr/share/plymouth
 	newins "${DISTDIR}"/gentoo-logo.png bizcom.png
 	
@@ -79,6 +67,8 @@ src_install() {
 		mkdir -p "${D}/usr/$(get_libdir)/systemd"
 		mv "${D}/lib/systemd/system" "${D}/usr/$(get_libdir)/systemd/system"
 		rm -rf "${D}/lib"
+		sed -i -e "s@/bin/udevadm@/usr/bin/udevadm@g" \
+			"${D}/usr/$(get_libdir)/systemd/system/plymouth-start.service"
 	fi
 }
 
