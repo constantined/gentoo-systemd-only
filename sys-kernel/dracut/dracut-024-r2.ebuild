@@ -1,6 +1,6 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-kernel/dracut/dracut-023.ebuild,v 1.1 2012/08/20 21:37:10 aidecoe Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-kernel/dracut/dracut-024-r1.ebuild,v 1.1 2012/11/01 09:54:08 aidecoe Exp $
 
 EAPI=4
 
@@ -78,10 +78,11 @@ RDEPEND="${CDEPEND}
 
 	debug? ( dev-util/strace )
 	device-mapper? ( || ( sys-fs/device-mapper >=sys-fs/lvm2-2.02.33 ) )
-	net? ( net-misc/curl >=net-misc/dhcp-4.2.1-r1 sys-apps/iproute2 )
+	net? ( net-misc/curl >=net-misc/dhcp-4.2.4_p2-r1[client] sys-apps/iproute2 )
 	selinux? ( sys-libs/libselinux sys-libs/libsepol )
 	dracut_modules_biosdevname? ( sys-apps/biosdevname )
-	dracut_modules_bootchart? ( app-benchmarks/bootchart2 )
+	dracut_modules_bootchart? ( app-benchmarks/bootchart2 sys-apps/usleep
+		sys-process/acct )
 	dracut_modules_btrfs? ( sys-fs/btrfs-progs )
 	dracut_modules_caps? ( sys-libs/libcap )
 	dracut_modules_cifs? ( net-fs/cifs-utils )
@@ -182,7 +183,9 @@ src_compile() {
 }
 
 src_install() {
-	emake prefix=/usr libdir="/usr/$(get_libdir)" sysconfdir=/etc \
+	local libdir="/usr/lib"
+
+	emake prefix=/usr libdir="${libdir}" sysconfdir=/etc \
 		DESTDIR="${D}" install
 
 	dodir /var/lib/dracut/overlay
@@ -200,7 +203,7 @@ src_install() {
 	# Modules
 	#
 	local module
-	modules_dir="${D}/usr/$(get_libdir)/dracut/modules.d"
+	modules_dir="${D%/}/${libdir#/}/dracut/modules.d"
 
 	# Remove modules not enabled by USE flags
 	for module in ${IUSE_DRACUT_MODULES} ; do
