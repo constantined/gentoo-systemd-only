@@ -9,7 +9,7 @@ inherit autotools-utils systemd
 DESCRIPTION="Graphical boot animation (splash) and logger"
 HOMEPAGE="http://cgit.freedesktop.org/plymouth/"
 SRC_URI="
-	http://www.freedesktop.org/software/plymouth/releases/${P}.tar.gz
+	http://www.freedesktop.org/software/plymouth/releases/${P}.tar.bz2
 	http://dev.gentoo.org/~aidecoe/distfiles/${CATEGORY}/${PN}/gentoo-logo.png"
 
 LICENSE="GPL-2"
@@ -62,7 +62,7 @@ src_install() {
 
 	insinto /usr/share/plymouth
 	newins "${DISTDIR}"/gentoo-logo.png bizcom.png
-	
+
 	if use systemd; then
 		mkdir -p "${D}/usr/$(get_libdir)/systemd"
 		mv "${D}/lib/systemd/system" "${D}/usr/$(get_libdir)/systemd/system"
