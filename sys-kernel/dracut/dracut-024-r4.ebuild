@@ -1,10 +1,10 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-kernel/dracut/dracut-024-r1.ebuild,v 1.1 2012/11/01 09:54:08 aidecoe Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-kernel/dracut/dracut-024-r3.ebuild,v 1.1 2012/12/16 19:54:27 aidecoe Exp $
 
 EAPI=4
 
-inherit eutils linux-info toolchain-funcs
+inherit eutils linux-info
 
 add_req_use_for() {
 	local dep="$1"; shift
@@ -63,18 +63,19 @@ IUSE="debug device-mapper optimization net selinux ${IUSE_DRACUT_MODULES}"
 
 RESTRICT="test"
 
-CDEPEND=">sys-fs/udev-166
+CDEPEND=">virtual/udev-166
 	dracut_modules_systemd? ( sys-apps/systemd )
 	"
 RDEPEND="${CDEPEND}
 	app-arch/cpio
 	>=app-shells/bash-4.0
 	>=app-shells/dash-0.5.4.11
-	|| ( >=sys-apps/module-init-tools-3.8 >sys-apps/kmod-5[tools] )
 	>=sys-apps/systemd-baselayout-10.0
 	>=sys-apps/systemd-sysv-utils-37
 	>=sys-apps/sysvinit-tools-2.88-r3
+	|| ( >=sys-apps/module-init-tools-3.8 >sys-apps/kmod-5[tools] )
 	>=sys-apps/util-linux-2.21
+	virtual/pkgconfig
 
 	debug? ( dev-util/strace )
 	device-mapper? ( || ( sys-fs/device-mapper >=sys-fs/lvm2-2.02.33 ) )
@@ -105,7 +106,6 @@ DEPEND="${CDEPEND}
 	>=dev-libs/libxslt-1.1.26
 	app-text/docbook-xml-dtd:4.5
 	>=app-text/docbook-xsl-stylesheets-1.75.2
-	virtual/pkgconfig
 	"
 
 #
@@ -150,11 +150,10 @@ rm_module() {
 #
 
 src_prepare() {
-	local udevdir="$($(tc-getPKG_CONFIG) udev --variable=udevdir)"
-	[[ ${udevdir} ]] || die "Couldn't detect udevdir"
-	einfo "Setting udevdir to ${udevdir}..."
-	sed -e "s@udevdir=.*@udevdir=\"${udevdir}\"@" \
-		-i "${S}/dracut.conf.d/gentoo.conf.example" || die
+	epatch "${FILESDIR}/${PV}-0001-Fallback-to-external-blkid-and-path_id.patch"
+	epatch "${FILESDIR}/${PV}-0002-dracut-functions.sh-support-for-altern.patch"
+	epatch "${FILESDIR}/${PV}-0003-gentoo.conf-let-udevdir-be-handled-by-.patch"
+	chmod +x "${S}/modules.d/95udev-rules/udev-rules-prepare.sh"
 
 	if use dracut_modules_systemd; then
 		local systemdutildir="$($(tc-getPKG_CONFIG) systemd \
