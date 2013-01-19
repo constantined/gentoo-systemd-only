@@ -1,9 +1,9 @@
-# Copyright 1999-2012 Gentoo Foundation
+# Copyright 1999-2013 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-fs/lvm2/lvm2-2.02.97.ebuild,v 1.1 2012/08/12 21:11:49 robbat2 Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-fs/lvm2/lvm2-2.02.98.ebuild,v 1.3 2013/01/18 03:39:06 ssuominen Exp $
 
-EAPI=3
-inherit eutils multilib toolchain-funcs autotools linux-info
+EAPI=5
+inherit eutils multilib toolchain-funcs autotools linux-info udev
 
 DESCRIPTION="User-land utilities for LVM2 (device-mapper) software."
 HOMEPAGE="http://sources.redhat.com/lvm2/"
@@ -20,7 +20,7 @@ DEPEND_COMMON="!!sys-fs/device-mapper
 	readline? ( sys-libs/readline )
 	clvm? ( =sys-cluster/libdlm-3*
 			cman? ( =sys-cluster/cman-3* ) )
-	udev? ( >=sys-fs/udev-151-r4 )"
+	udev? ( virtual/udev )"
 
 # /run is now required for locking during early boot. /var cannot be assumed to
 # be available.
@@ -37,7 +37,7 @@ RDEPEND="${RDEPEND}
 DEPEND="${DEPEND_COMMON}
 		virtual/pkgconfig
 		>=sys-devel/binutils-2.20.1-r1
-		static? ( || ( >=sys-fs/udev-181[static-libs] <sys-fs/udev-181 ) )"
+		static? ( virtual/udev[static-libs] )"
 
 S="${WORKDIR}/${PN/lvm/LVM}.${PV}"
 
@@ -51,10 +51,6 @@ pkg_setup() {
 		elog "their static versions. If you need the static binaries,"
 		elog "you must append .static to the filename!"
 	fi
-}
-
-src_unpack() {
-	unpack ${A}
 }
 
 src_prepare() {
@@ -101,6 +97,16 @@ src_prepare() {
 	# Upstream patch for http://bugs.gentoo.org/424810
 	# Merged upstream
 	#epatch "${FILESDIR}"/${PN}-2.02.95-udev185.patch
+
+	# Upstream patch for https://bugs.gentoo.org/444328
+	# Merged upstream
+	#epatch "${FILESDIR}"/${PN}-2.02.97-strict-aliasing.patch
+
+	# Fix calling AR directly with USE static, bug #444082
+	if use static ; then
+		sed -i -e "s:\$(AR) rs \$@ \$(OBJECTS) lvmcmdlib.o lvm2cmd-static.o:$(tc-getAR) rs \$@ \$(OBJECTS) lvmcmdlib.o lvm2cmd-static.o:" \
+			tools/Makefile.in || die "sed failed"
+	fi
 
 	eautoreconf
 }
@@ -170,7 +176,7 @@ src_configure() {
 	fi
 
 	local udevdir="${EPREFIX}/lib/udev/rules.d"
-	use udev && udevdir="${EPREFIX}$($(tc-getPKG_CONFIG) --variable=udevdir udev)/rules.d"
+	use udev && udevdir="${EPREFIX}/$(udev_get_udevdir)/rules.d"
 
 	econf \
 		$(use_enable readline) \
@@ -198,19 +204,19 @@ src_compile() {
 	popd
 
 	einfo "Starting main build"
-	emake || die "compile fail"
+	emake AR="$(tc-getAR)" || die "compile fail"
 }
 
 src_install() {
-	emake DESTDIR="${D}" install || die "Failed to emake install"
+	emake DESTDIR="${D}" install
 
 	dodoc README VERSION* WHATS_NEW WHATS_NEW_DM doc/*.{conf,c,txt}
-	newinitd "${FILESDIR}"/lvm.rc-2.02.95-r2 lvm || die
-	newinitd "${FILESDIR}"/lvm-monitoring.initd-2.02.67-r2 lvm-monitoring || die
-	newconfd "${FILESDIR}"/lvm.confd-2.02.28-r2 lvm || die
+	newinitd "${FILESDIR}"/lvm.rc-2.02.95-r2 lvm
+	newinitd "${FILESDIR}"/lvm-monitoring.initd-2.02.67-r2 lvm-monitoring
+	newconfd "${FILESDIR}"/lvm.confd-2.02.28-r2 lvm
 	if use clvm; then
-		newinitd "${FILESDIR}"/clvmd.rc-2.02.39 clvmd || die
-		newconfd "${FILESDIR}"/clvmd.confd-2.02.39 clvmd || die
+		newinitd "${FILESDIR}"/clvmd.rc-2.02.39 clvmd
+		newconfd "${FILESDIR}"/clvmd.confd-2.02.39 clvmd
 	fi
 
 	# move shared libs to /lib(64)
@@ -227,10 +233,10 @@ src_install() {
 	doins "${FILESDIR}"/dmtab
 
 	# Device mapper stuff
-	newinitd "${FILESDIR}"/device-mapper.rc-2.02.95-r2 device-mapper || die
-	newconfd "${FILESDIR}"/device-mapper.conf-1.02.22-r3 device-mapper || die
+	newinitd "${FILESDIR}"/device-mapper.rc-2.02.95-r2 device-mapper
+	newconfd "${FILESDIR}"/device-mapper.conf-1.02.22-r3 device-mapper
 
-	newinitd "${FILESDIR}"/dmeventd.initd-2.02.67-r1 dmeventd || die
+	newinitd "${FILESDIR}"/dmeventd.initd-2.02.67-r1 dmeventd
 	if use static-libs; then
 		dolib.a daemons/dmeventd/libdevmapper-event.a \
 		|| die "dolib.a libdevmapper-event.a"
@@ -241,7 +247,7 @@ src_install() {
 	rm -f "${D}"/usr/$(get_libdir)/{libdevmapper-event,liblvm2cmd,liblvm2app,libdevmapper}.a
 
 	#insinto /etc/udev/rules.d/
-	#newins "${FILESDIR}"/64-device-mapper.rules-2.02.56-r3 64-device-mapper.rules || die
+	#newins "${FILESDIR}"/64-device-mapper.rules-2.02.56-r3 64-device-mapper.rules
 
 	# do not rely on /lib -> /libXX link
 	sed -i \
