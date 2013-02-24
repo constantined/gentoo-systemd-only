@@ -12,7 +12,7 @@ Git repository: git://github.com/canek-pelaez/gentoo-systemd-only.git
 Introduction
 
 The package sys-apps/systemd was added to the portage tree in June of 2011, and
-since then support for it has only been growing. As of now (September, 2012),
+since then support for it has only been growing. As of now (February, 2013),
 almost any hardware configuration it's able to run Linux with systemd.
 The systemd package is written as a drop-in replacement for SysV init; however,
 Gentoo utilizes OpenRC, a different init system that runs on top of SysV init.
@@ -21,13 +21,17 @@ packages normally install in /etc/init.d.
 The Gentoo developers that introduced systemd into the portage tree decided
 (quite wisely) that systemd should be able to be installed in parallel to
 OpenRC, so that users will be able to test it first and get back to the default
-setup if something went wrong, or if the user didn't liked systemd.
-This is fine; however, if a user decides to use systemd exclusively, it is not
-possible to install it as the only init system in a Gentoo machine right now:
-The package sys-apps/baselayout is included in the @system set, and it depends
-on sys-apps/openrc, so every single Gentoo installation includes both packages,
-unless the user explicitly configures her system to avoid the installation of
-said packages.
+setup if something went wrong, or if the user didn't liked systemd. Nowadays
+this doesn't always work, since systemd has took over the functionality
+provided by ConsoleKit (which is unmaintained), and so the user needs to
+recompile some packages to use ConsoleKit or systemd, depending on if she's
+using OpenRC or systemd.
+However, if a user decides to use systemd exclusively, it is not possible to
+install it as the only init system in a Gentoo machine right now: The package
+sys-apps/baselayout is included in the @system set, and it depends on sys-apps/
+openrc, so every single Gentoo installation includes both packages, unless the
+user explicitly configures her system to avoid the installation of said
+packages.
 This overlay is an experiment to see how difficult it is to remove OpenRC from
 a Gentoo system, so it runs only with systemd. I will try to keep the overlay
 in sync with the portage tree until the listed bugs are fixed and the new
@@ -64,24 +68,13 @@ systemd.
      tools and sys-apps/systemd-sysv-utils; and the removal of sys-apps/
      baselayout should also be safe, provided that you install sys-apps/
      systemd-baselayout.
-  2. If haven't done it already, replace sys-apps/module-init-tools with sys-
-     apps/kmod:
-
-       # emerge --unmerge --verbose sys-apps/module-init-tools
-       # emerge --oneshot --verbose sys-apps/kmod
-
-     You will need to add sys-apps/kmod to /etc/portage/package.keywords:
-     /etc/portage/package.keywords
-
-       sys-apps/kmod
-
-  3. Add the directory with the gentoo-systemd-only overlay to the
+  2. Add the directory with the gentoo-systemd-only overlay to the
      PORTDIR_OVERLAY variable in /etc/portage/make.conf:
      /etc/portage/make.conf
 
        PORTDIR_OVERLAY="/path/to/gentoo-systemd-only"
 
-  4. Edit /etc/portage/profile/packages (create it if it doesn't exists) and
+  3. Edit /etc/portage/profile/packages (create it if it doesn't exists) and
      add the following lines:
      /etc/portage/profile/packages
 
@@ -90,6 +83,11 @@ systemd.
 
      The first line removes baselayout from the @system set, the second one
      adds sys-apps/systemd-baselayout to it.
+  4. Edit /etc/portage/profile/use.mask (create it if it doesn't exists) and
+     add the following line:
+     /etc/portage/profile/use.mask
+     -systemd
+     The systemd USE flag is currently masked, so we unmask it here.
   5. Edit /etc/portage/package.keywords and add sys-apps/systemd-baselayout,
      sys-apps/sysvinit-tools, and and sys-apps/systemd-sysv-utils:
      /etc/portage/package.keywords
@@ -131,6 +129,17 @@ systemd.
      it to me if you do). If you don't know how to do it, you can send me the
      output of the pretendend emerge so I can create the alternative ebuild,
      integrate it in the overlay, and then you will be able to do the emerge.
+  9. (Recommended). Some packages, like sys-auth/polkit, can only work with
+     systemd or ConsoleKit; you need to compile them with either systemd or
+     ConsoleKit support. If you are running systemd, chances are some packages
+     will fail (sometimes weirdly) if they have ConsoleKit support instead of
+     systemd's. So it is recommended to:
+
+       # USE="systemd -consolekit" emerge --newuse --deep --update --verbose --
+       pretend @world
+
+     If the emerge works, you should probably uninstall consolekit, which is
+     unmaintained anyway.
 
 
 OpenRC init scripts
@@ -216,11 +225,6 @@ a diff to the corresponding ebuilds in the portage tree.
   o Source /usr/lib/misc/elog-functions.sh instead of /etc/init.d/functions.sh.
     Bug #373219 (https://bugs.gentoo.org/show_bug.cgi?id=373219).
 
-* net-dns/avahi:
-
-  o Use the systemd eclass:
-    Bug #366173 (https://bugs.gentoo.org/show_bug.cgi?id=366173).
-
 * sys-fs/lvm2:
 
   o Don't depend on sys-apps/baselayout.
@@ -232,6 +236,8 @@ a diff to the corresponding ebuilds in the portage tree.
 
   o Use the systemd eclass.
     No bug reported until audit upstream includes the service file by default.
+    Also, the systemd developers don't seem very fond of audit anyway, so I'm
+    thinking in removing this one.
 
 * sys-kernel/dracut:
 
@@ -240,11 +246,11 @@ a diff to the corresponding ebuilds in the portage tree.
     No bug filled until sys-apps/systemd-baselayout is good enough to being
     considered for inclusion in the tree.
   o Depend on sys-apps/systemd-sysv-utils instead of sys-apps/sysvinit:
-    No bug filled until bug #399615 (https://bugs.gentoo.org/
-    show_bug.cgi?id=399615) gets fixed and sys-apps/systemd-sysv-utils gets
-    unmasked.
+    No bug filled until sys-apps/systemd-sysv-utils gets unmasked.
   o Depend on new package sys-apps/sysvinit-tools:
-    Bug #399615 (https://bugs.gentoo.org/show_bug.cgi?id=399615).
+    Bug #399615 (https://bugs.gentoo.org/show_bug.cgi?id=399615). The bug is
+    closed, but sys-apps/util-linux disables most of the utils needed, and we
+    still need killall5 and pidof.
 
 
 
