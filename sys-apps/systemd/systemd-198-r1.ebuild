@@ -58,7 +58,8 @@ DEPEND="${COMMON_DEPEND}
 	>=sys-kernel/linux-headers-${MINKV}"
 
 src_prepare() {
-	epatch "${FILESDIR}/${P}-underlink.patch"
+	epatch "${FILESDIR}/${P}-break-dependency-loop-1.patch"
+	epatch "${FILESDIR}/${P}-break-dependency-loop-2.patch"
 	# link against external udev.
 	sed -i -e 's:lib\(udev\)\.la:-l\1:' Makefile.am
 
