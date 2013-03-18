@@ -1,7 +1,7 @@
-From 8f8ecaf6d0a3b19356617c502b5241088f98d17f Mon Sep 17 00:00:00 2001
+From f4bfd74c673c5f4d01cf9855f2e4f58c59f5b658 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Amadeusz=20=C5=BBo=C5=82nowski?= <aidecoe@aidecoe.name>
 Date: Sun, 16 Dec 2012 20:02:48 +0100
-Subject: [PATCH 3/3] gentoo.conf: let udevdir= be handled by pkg-config and
+Subject: [PATCH 2/3] gentoo.conf: let udevdir= be handled by pkg-config and
  use udevaltdirs
 
 To avoid need of rebuild after udev update/downgrade let udevdir= be set
@@ -26,5 +26,5 @@ index 1361a30..b78e5c6 100644
  
  #
 -- 
-1.8.0.2
+1.8.1.4
 
