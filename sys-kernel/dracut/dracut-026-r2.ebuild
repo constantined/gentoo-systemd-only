@@ -63,7 +63,7 @@ IUSE="debug device-mapper optimization net selinux ${IUSE_DRACUT_MODULES}"
 
 RESTRICT="test"
 
-CDEPEND=">sys-fs/udev-166
+CDEPEND="
 	dracut_modules_systemd? ( sys-apps/systemd )
 	"
 RDEPEND="${CDEPEND}
