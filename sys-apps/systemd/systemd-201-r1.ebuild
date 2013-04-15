@@ -1,6 +1,6 @@
 # Copyright 1999-2013 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-200.ebuild,v 1.3 2013/03/30 17:02:32 floppym Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-201.ebuild,v 1.1 2013/04/14 07:53:10 mgorny Exp $
 
 EAPI=5
 
@@ -15,7 +15,7 @@ LICENSE="GPL-2 LGPL-2.1 MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~ppc64 ~x86"
 IUSE="acl audit cryptsetup doc gcrypt gudev http
-	introspection +kmod lzma pam python qrcode selinux static-libs
+	introspection +kmod lzma openrc pam python qrcode selinux static-libs
 	tcpd vanilla xattr"
 
 MINKV="2.6.39"
@@ -39,8 +39,8 @@ COMMON_DEPEND=">=sys-apps/dbus-1.6.8-r1
 	tcpd? ( sys-apps/tcp-wrappers )
 	xattr? ( sys-apps/attr )"
 
-# baselayout-2.2 has /run
 RDEPEND="${COMMON_DEPEND}
+	openrc? ( >=sys-fs/udev-init-scripts-25 )
 	|| (
 		>=sys-apps/util-linux-2.22
 		<sys-apps/sysvinit-2.88-r4
@@ -71,7 +71,7 @@ src_configure() {
 		--with-rootprefix=/usr
 		--with-rootlibdir=/usr/$(get_libdir)
 		# but pam modules have to lie in /lib*
-		--with-pamlibdir=/$(get_libdir)/security
+		--with-pamlibdir=$(getpam_mod_dir)
 		# make sure we get /bin:/sbin in $PATH
 		--enable-split-usr
 		# disable sysv compatibility
@@ -122,11 +122,11 @@ src_install() {
 		dist_udevhwdb_DATA=
 
 	# keep udev working without initramfs, for openrc compat
-	dodir /sbin
+	dodir /bin /sbin
 	mv "${D}"/usr/lib/systemd/systemd-udevd "${D}"/sbin/udevd || die
-	mv "${D}"/usr/bin/udevadm "${D}"/sbin/udevadm || die
+	mv "${D}"/usr/bin/udevadm "${D}"/bin/udevadm || die
 	dosym ../../../sbin/udevd /usr/lib/systemd/systemd-udevd
-	dosym ../../sbin/udevadm /usr/bin/udevadm
+	dosym ../../bin/udevadm /usr/bin/udevadm
 
 	# zsh completion
 	insinto /usr/share/zsh/site-functions
