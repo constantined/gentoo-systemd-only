@@ -1,6 +1,6 @@
 # Copyright 1999-2013 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-201.ebuild,v 1.1 2013/04/14 07:53:10 mgorny Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-202.ebuild,v 1.1 2013/04/27 18:26:32 mgorny Exp $
 
 EAPI=5
 
@@ -14,9 +14,9 @@ SRC_URI="http://www.freedesktop.org/software/systemd/${P}.tar.xz"
 LICENSE="GPL-2 LGPL-2.1 MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~ppc64 ~x86"
-IUSE="acl audit cryptsetup doc gcrypt gudev http
-	introspection +kmod lzma openrc pam python qrcode selinux static-libs
-	tcpd vanilla xattr"
+IUSE="acl audit cryptsetup doc +firmware-loader gcrypt gudev http introspection
+	keymap +kmod lzma openrc pam policykit python qrcode selinux static-libs
+	tcpd test vanilla xattr"
 
 MINKV="2.6.39"
 
@@ -41,6 +41,7 @@ COMMON_DEPEND=">=sys-apps/dbus-1.6.8-r1
 
 RDEPEND="${COMMON_DEPEND}
 	openrc? ( >=sys-fs/udev-init-scripts-25 )
+	policykit? ( sys-auth/polkit )
 	|| (
 		>=sys-apps/util-linux-2.22
 		<sys-apps/sysvinit-2.88-r4
@@ -51,37 +52,66 @@ RDEPEND="${COMMON_DEPEND}
 
 PDEPEND=">=sys-apps/hwids-20130326.1[udev]"
 
-# sys-fs/quota is necessary to store correct paths in unit files
 DEPEND="${COMMON_DEPEND}
 	app-arch/xz-utils
 	app-text/docbook-xsl-stylesheets
 	dev-libs/libxslt
 	dev-util/gperf
 	>=dev-util/intltool-0.50
-	sys-fs/quota
+	>=sys-devel/gcc-4.6
 	>=sys-kernel/linux-headers-${MINKV}
 	virtual/pkgconfig
 	doc? ( >=dev-util/gtk-doc-1.18 )"
 
+pkg_pretend() {
+	local CONFIG_CHECK="~AUTOFS4_FS ~BLK_DEV_BSG ~CGROUPS ~DEVTMPFS
+		~FANOTIFY ~HOTPLUG ~INOTIFY_USER ~IPV6 ~NET ~PROC_FS ~SIGNALFD
+		~SYSFS ~!IDE ~!SYSFS_DEPRECATED ~!SYSFS_DEPRECATED_V2"
+#		~!FW_LOADER_USER_HELPER"
+
+	if [[ ${MERGE_TYPE} != binary ]]; then
+		if [[ $(gcc-major-version) -lt 4
+			|| ( $(gcc-major-version) -eq 4 && $(gcc-minor-version) -lt 6 ) ]]
+		then
+			eerror "systemd requires at least gcc 4.6 to build. Please switch the active"
+			eerror "gcc version using gcc-config."
+			die "systemd requires at least gcc 4.6"
+		fi
+	fi
+
+	if [[ ${MERGE_TYPE} != buildonly ]]; then
+		if kernel_is -lt ${MINKV//./ }; then
+			ewarn "Kernel version at least ${MINKV} required"
+		fi
+
+		if ! use firmware-loader && kernel_is -lt 3 8; then
+			ewarn "You seem to be using kernel older than 3.8. Those kernel versions"
+			ewarn "require systemd with USE=firmware-loader to support loading"
+			ewarn "firmware. Missing this flag may cause some hardware not to work."
+		fi
+
+		check_extra_config
+	fi
+}
+
+pkg_setup() {
+	use python && python-single-r1_pkg_setup
+}
+
 src_configure() {
 	local myeconfargs=(
 		--localstatedir=/var
-		--with-firmware-path="/lib/firmware/updates:/lib/firmware"
-		# install everything to /usr
-		--with-rootprefix=/usr
-		--with-rootlibdir=/usr/$(get_libdir)
-		# but pam modules have to lie in /lib*
 		--with-pamlibdir=$(getpam_mod_dir)
+		# avoid bash-completion dep, default is stupid
+		--with-bashcompletiondir=/usr/share/bash-completion
 		# make sure we get /bin:/sbin in $PATH
 		--enable-split-usr
 		# disable sysv compatibility
 		--with-sysvinit-path=
 		--with-sysvrcnd-path=
-		# just text files
-		--enable-polkit
 		# no deps
-		--enable-keymap
 		--enable-efi
+		--enable-ima
 		# optional components/dependencies
 		$(use_enable acl)
 		$(use_enable audit)
@@ -91,19 +121,35 @@ src_configure() {
 		$(use_enable gudev)
 		$(use_enable http microhttpd)
 		$(use_enable introspection)
+		$(use_enable keymap)
 		$(use_enable kmod)
 		$(use_enable lzma xz)
 		$(use_enable pam)
+		$(use_enable policykit polkit)
 		$(use_with python)
 		$(use python && echo PYTHON_CONFIG=/usr/bin/python-config-${EPYTHON#python})
 		$(use_enable qrcode qrencode)
 		$(use_enable selinux)
 		$(use_enable tcpd tcpwrap)
+		$(use_enable test tests)
 		$(use_enable xattr)
+
+		# not supported (avoid automagic deps in the future)
+		--disable-chkconfig
+
+		# hardcode a few paths to spare some deps
+		QUOTAON=/usr/sbin/quotaon
+		QUOTACHECK=/usr/sbin/quotacheck
 	)
 
 	# Keep using the one where the rules were installed.
 	MY_UDEVDIR=$(get_udevdir)
+
+	if use firmware-loader; then
+		myeconfargs+=(
+			--with-firmware-path="/lib/firmware/updates:/lib/firmware"
+		)
+	fi
 
 	# Work around bug 463846.
 	tc-export CC
@@ -170,14 +216,6 @@ src_install() {
 	do
 		[[ -x ${D}${x} ]] || die "${x} symlink broken, aborting."
 	done
-}
-
-pkg_preinst() {
-	local CONFIG_CHECK="~AUTOFS4_FS ~BLK_DEV_BSG ~CGROUPS ~DEVTMPFS
-		~FANOTIFY ~HOTPLUG ~INOTIFY_USER ~IPV6 ~NET ~PROC_FS ~SIGNALFD
-		~SYSFS ~!IDE ~!SYSFS_DEPRECATED ~!SYSFS_DEPRECATED_V2"
-	kernel_is -ge ${MINKV//./ } || ewarn "Kernel version at least ${MINKV} required"
-	check_extra_config
 }
 
 optfeature() {
