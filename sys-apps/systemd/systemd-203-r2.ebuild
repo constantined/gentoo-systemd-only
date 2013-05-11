@@ -1,9 +1,10 @@
 # Copyright 1999-2013 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-200.ebuild,v 1.3 2013/03/30 17:02:32 floppym Exp $
+# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-203-r1.ebuild,v 1.1 2013/05/08 17:56:18 floppym Exp $
 
 EAPI=5
 
+AUTOTOOLS_PRUNE_LIBTOOL_FILES=all
 PYTHON_COMPAT=( python2_7 )
 inherit autotools-utils linux-info multilib pam python-single-r1 systemd toolchain-funcs udev user
 
@@ -14,9 +15,9 @@ SRC_URI="http://www.freedesktop.org/software/systemd/${P}.tar.xz"
 LICENSE="GPL-2 LGPL-2.1 MIT"
 SLOT="0"
 KEYWORDS="~amd64 ~arm ~ppc64 ~x86"
-IUSE="acl audit cryptsetup doc gcrypt gudev http
-	introspection +kmod lzma pam python qrcode selinux static-libs
-	tcpd vanilla xattr"
+IUSE="acl audit cryptsetup doc +firmware-loader gcrypt gudev http introspection
+	keymap +kmod lzma openrc pam policykit python qrcode selinux static-libs
+	tcpd test vanilla xattr"
 
 MINKV="2.6.39"
 
@@ -39,8 +40,9 @@ COMMON_DEPEND=">=sys-apps/dbus-1.6.8-r1
 	tcpd? ( sys-apps/tcp-wrappers )
 	xattr? ( sys-apps/attr )"
 
-# baselayout-2.2 has /run
 RDEPEND="${COMMON_DEPEND}
+	openrc? ( >=sys-fs/udev-init-scripts-25 )
+	policykit? ( sys-auth/polkit )
 	|| (
 		>=sys-apps/util-linux-2.22
 		<sys-apps/sysvinit-2.88-r4
@@ -51,37 +53,84 @@ RDEPEND="${COMMON_DEPEND}
 
 PDEPEND=">=sys-apps/hwids-20130326.1[udev]"
 
-# sys-fs/quota is necessary to store correct paths in unit files
 DEPEND="${COMMON_DEPEND}
 	app-arch/xz-utils
 	app-text/docbook-xsl-stylesheets
 	dev-libs/libxslt
 	dev-util/gperf
 	>=dev-util/intltool-0.50
-	sys-fs/quota
+	>=sys-devel/gcc-4.6
 	>=sys-kernel/linux-headers-${MINKV}
 	virtual/pkgconfig
 	doc? ( >=dev-util/gtk-doc-1.18 )"
 
+PATCHES=( "${FILESDIR}/203-systemd-sleep.patch" )
+
+pkg_pretend() {
+	local CONFIG_CHECK="~AUTOFS4_FS ~BLK_DEV_BSG ~CGROUPS ~DEVTMPFS
+		~FANOTIFY ~HOTPLUG ~INOTIFY_USER ~IPV6 ~NET ~PROC_FS ~SIGNALFD
+		~SYSFS ~!IDE ~!SYSFS_DEPRECATED ~!SYSFS_DEPRECATED_V2"
+#		~!FW_LOADER_USER_HELPER"
+
+	# read null-terminated argv[0] from PID 1
+	# and see which path to systemd was used (if any)
+	local init_path
+	IFS= read -r -d '' init_path < /proc/1/cmdline
+	if [[ ${init_path} == */bin/systemd ]]; then
+		eerror "You are using a compatibility symlink to run systemd. The symlink"
+		eerror "has been removed. Please update your bootloader to use:"
+		eerror
+		eerror "	init=/usr/lib/systemd/systemd"
+		eerror
+		eerror "and reboot your system. We are sorry for the inconvenience."
+		if [[ ${MERGE_TYPE} != buildonly ]]; then
+			die "Compatibility symlink used to boot systemd."
+		fi
+	fi
+
+	if [[ ${MERGE_TYPE} != binary ]]; then
+		if [[ $(gcc-major-version) -lt 4
+			|| ( $(gcc-major-version) -eq 4 && $(gcc-minor-version) -lt 6 ) ]]
+		then
+			eerror "systemd requires at least gcc 4.6 to build. Please switch the active"
+			eerror "gcc version using gcc-config."
+			die "systemd requires at least gcc 4.6"
+		fi
+	fi
+
+	if [[ ${MERGE_TYPE} != buildonly ]]; then
+		if kernel_is -lt ${MINKV//./ }; then
+			ewarn "Kernel version at least ${MINKV} required"
+		fi
+
+		if ! use firmware-loader && kernel_is -lt 3 8; then
+			ewarn "You seem to be using kernel older than 3.8. Those kernel versions"
+			ewarn "require systemd with USE=firmware-loader to support loading"
+			ewarn "firmware. Missing this flag may cause some hardware not to work."
+		fi
+
+		check_extra_config
+	fi
+}
+
+pkg_setup() {
+	use python && python-single-r1_pkg_setup
+}
+
 src_configure() {
 	local myeconfargs=(
 		--localstatedir=/var
-		--with-firmware-path="/lib/firmware/updates:/lib/firmware"
-		# install everything to /usr
-		--with-rootprefix=/usr
-		--with-rootlibdir=/usr/$(get_libdir)
-		# but pam modules have to lie in /lib*
-		--with-pamlibdir=/$(get_libdir)/security
+		--with-pamlibdir=$(getpam_mod_dir)
+		# avoid bash-completion dep, default is stupid
+		--with-bashcompletiondir=/usr/share/bash-completion
 		# make sure we get /bin:/sbin in $PATH
 		--enable-split-usr
 		# disable sysv compatibility
 		--with-sysvinit-path=
 		--with-sysvrcnd-path=
-		# just text files
-		--enable-polkit
 		# no deps
-		--enable-keymap
 		--enable-efi
+		--enable-ima
 		# optional components/dependencies
 		$(use_enable acl)
 		$(use_enable audit)
@@ -91,19 +140,35 @@ src_configure() {
 		$(use_enable gudev)
 		$(use_enable http microhttpd)
 		$(use_enable introspection)
+		$(use_enable keymap)
 		$(use_enable kmod)
 		$(use_enable lzma xz)
 		$(use_enable pam)
+		$(use_enable policykit polkit)
 		$(use_with python)
 		$(use python && echo PYTHON_CONFIG=/usr/bin/python-config-${EPYTHON#python})
 		$(use_enable qrcode qrencode)
 		$(use_enable selinux)
 		$(use_enable tcpd tcpwrap)
+		$(use_enable test tests)
 		$(use_enable xattr)
+
+		# not supported (avoid automagic deps in the future)
+		--disable-chkconfig
+
+		# hardcode a few paths to spare some deps
+		QUOTAON=/usr/sbin/quotaon
+		QUOTACHECK=/usr/sbin/quotacheck
 	)
 
 	# Keep using the one where the rules were installed.
 	MY_UDEVDIR=$(get_udevdir)
+
+	if use firmware-loader; then
+		myeconfargs+=(
+			--with-firmware-path="/lib/firmware/updates:/lib/firmware"
+		)
+	fi
 
 	# Work around bug 463846.
 	tc-export CC
@@ -122,18 +187,15 @@ src_install() {
 		dist_udevhwdb_DATA=
 
 	# keep udev working without initramfs, for openrc compat
-	dodir /sbin
+	dodir /bin /sbin
 	mv "${D}"/usr/lib/systemd/systemd-udevd "${D}"/sbin/udevd || die
-	mv "${D}"/usr/bin/udevadm "${D}"/sbin/udevadm || die
+	mv "${D}"/usr/bin/udevadm "${D}"/bin/udevadm || die
 	dosym ../../../sbin/udevd /usr/lib/systemd/systemd-udevd
-	dosym ../../sbin/udevadm /usr/bin/udevadm
+	dosym ../../bin/udevadm /usr/bin/udevadm
 
 	# zsh completion
 	insinto /usr/share/zsh/site-functions
 	newins shell-completion/systemd-zsh-completion.zsh "_${PN}"
-
-	# remove pam.d plugin .la-file
-	prune_libtool_files --modules
 
 	# compat for init= use
 	dosym ../usr/lib/systemd/systemd /bin/systemd
@@ -170,14 +232,6 @@ src_install() {
 	do
 		[[ -x ${D}${x} ]] || die "${x} symlink broken, aborting."
 	done
-}
-
-pkg_preinst() {
-	local CONFIG_CHECK="~AUTOFS4_FS ~BLK_DEV_BSG ~CGROUPS ~DEVTMPFS
-		~FANOTIFY ~HOTPLUG ~INOTIFY_USER ~IPV6 ~NET ~PROC_FS ~SIGNALFD
-		~SYSFS ~!IDE ~!SYSFS_DEPRECATED ~!SYSFS_DEPRECATED_V2"
-	kernel_is -ge ${MINKV//./ } || ewarn "Kernel version at least ${MINKV} required"
-	check_extra_config
 }
 
 optfeature() {
@@ -223,19 +277,6 @@ pkg_postinst() {
 	elog "be installed:"
 	optfeature 'for GTK+ systemadm UI and gnome-ask-password-agent' \
 		'sys-apps/systemd-ui'
-
-	# read null-terminated argv[0] from PID 1
-	# and see which path to systemd was used (if any)
-	local init_path
-	IFS= read -r -d '' init_path < /proc/1/cmdline
-	if [[ ${init_path} == */bin/systemd ]]; then
-		ewarn
-		ewarn "You are using a compatibility symlink to run systemd. The symlink"
-		ewarn "will be removed in near future. Please update your bootloader"
-		ewarn "to use:"
-		ewarn
-		ewarn "	init=/usr/lib/systemd/systemd"
-	fi
 }
 
 pkg_prerm() {
