@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<layman>
+  <overlay contact="git://github.com/canek-pelaez/gentoo-systemd-only.git" name="gentoo-systemd-only" src="git://github.com/canek-pelaez/gentoo-systemd-only.git" status="unofficial" type="git">
+    <link>http://xochitl.matem.unam.mx/~canek/gentoo-systemd-only/index.html</link>
+    <description>gentoo systemd only overlay</description>
+  </overlay>
+</layman>
