@@ -8,6 +8,10 @@ Git repository: git://github.com/canek-pelaez/gentoo-systemd-only.git
 
   # git clone git://github.com/canek-pelaez/gentoo-systemd-only.git
 
+Or with layman
+
+  # USE=git emerge -av layman
+  # layman -o https://raw.github.com/canek-pelaez/gentoo-systemd-only/master/overlay.xml -f -a gentoo-systemd-only
 
 Introduction
 

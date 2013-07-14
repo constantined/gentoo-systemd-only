@@ -1,6 +1,6 @@
 # Copyright 1999-2013 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/sys-apps/systemd/systemd-204.ebuild,v 1.2 2013/05/14 14:55:37 floppym Exp $
+# $Header: $
 
 EAPI=5
 
